@@ -193,6 +193,47 @@
         padding: 0.45rem 0.15rem;
       }
     }
+
+    /* Word info panel */
+    .word-info {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .word-info:empty {
+      display: none;
+    }
+
+    .word-info .word-title {
+      font-weight: 700;
+      color: #7dd3fc;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .word-info .definition {
+      color: #e2e8f0;
+      margin-bottom: 0.5rem;
+    }
+
+    .word-info .etymology {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 0.8rem;
+    }
+
+    .word-info .etymology::before {
+      content: "Etymology: ";
+      font-weight: 600;
+      font-style: normal;
+    }
   </style>
 </head>
 <body>
@@ -207,6 +248,7 @@
       <div id="message" class="message" aria-live="polite"></div>
       <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
       <button id="new-game" type="button">New game</button>
+      <div id="word-info" class="word-info" aria-live="polite"></div>
     </main>
   </div>
 
@@ -427,6 +469,7 @@
       }
 
       updateKeyboardColours(letterStatuses);
+      showWordInfo(guess);
 
       if (guess === secretWord) {
         showMessage("Splendid! You've got it.");
@@ -477,6 +520,41 @@
       return result;
     }
 
+
+    // Word definitions data
+    let wordData = {};
+    
+    // Load word definitions
+    fetch('word-data/words3.json')
+      .then(r => r.json())
+      .then(data => { wordData = data; console.log('Loaded', Object.keys(data).length, 'word definitions'); })
+      .catch(e => console.log('Could not load word data:', e));
+
+    const wordInfoEl = document.getElementById("word-info");
+
+    function showWordInfo(word) {
+      const info = wordData[word];
+      if (!info) {
+        wordInfoEl.innerHTML = '';
+        return;
+      }
+      
+      let html = '<div class="word-title">' + word + '</div>';
+      if (info.d) {
+        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      }
+      if (info.e) {
+        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      }
+      wordInfoEl.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     function resetGame() {
       secretWord = pickSecretWord();
       currentRow = 0;
@@ -485,6 +563,7 @@
       createBoard();
       createKeyboard();
       showMessage("New game – good luck!");
+      wordInfoEl.innerHTML = '';
       // For debugging you can log the secret:
       // console.log("Secret word:", secretWord);
     }
