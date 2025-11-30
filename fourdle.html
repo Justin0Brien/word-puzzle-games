@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fourdle – 4-Letter Word Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg: #121213;
+      --tile-border: #3a3a3c;
+      --tile-border-filled: #565758;
+      --correct: #538d4e;
+      --present: #b59f3b;
+      --absent: #3a3a3c;
+      --key-bg: #818384;
+      --key-text: #ffffff;
+      --text: #ffffff;
+      --accent: #d3d6da;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      colour: var(--text);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 100vh;
+    }
+
+    .game {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    header {
+      text-align: centre;
+      text-align: center;
+      border-bottom: 1px solid #3a3a3c;
+      padding-bottom: 0.5rem;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    header small {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      colour: #aaaaaa;
+      color: #aaaaaa;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.35rem;
+      max-width: 360px;
+      margin: 0.5rem auto;
+    }
+
+    .tile {
+      border: 2px solid var(--tile-border);
+      border-radius: 4px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      colour: var(--text);
+      color: var(--text);
+      user-select: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .tile.filled {
+      border-colour: var(--tile-border-filled);
+      border-color: var(--tile-border-filled);
+    }
+
+    .tile.correct {
+      background: var(--correct);
+      border-colour: var(--correct);
+      border-color: var(--correct);
+      colour: #ffffff;
+      color: #ffffff;
+    }
+
+    .tile.present {
+      background: var(--present);
+      border-colour: var(--present);
+      border-color: var(--present);
+      colour: #ffffff;
+      color: #ffffff;
+    }
+
+    .tile.absent {
+      background: var(--absent);
+      border-colour: var(--absent);
+      border-color: var(--absent);
+      colour: #ffffff;
+      color: #ffffff;
+    }
+
+    .tile.flip {
+      transform: rotateX(360deg);
+    }
+
+    .message {
+      min-height: 1.25rem;
+      text-align: centre;
+      text-align: center;
+      font-size: 0.9rem;
+      colour: var(--accent);
+      color: var(--accent);
+    }
+
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: 0.3rem;
+      max-width: 480px;
+      margin: 0 auto;
+      touch-action: manipulation;
+    }
+
+    .key {
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 0.2rem;
+      background: var(--key-bg);
+      colour: var(--key-text);
+      color: var(--key-text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .key.large {
+      grid-column: span 2;
+    }
+
+    .key.correct {
+      background: var(--correct);
+    }
+
+    .key.present {
+      background: var(--present);
+    }
+
+    .key.absent {
+      background: var(--absent);
+    }
+
+    #new-game {
+      margin: 0.5rem auto 0;
+      padding: 0.5rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid #3a3a3c;
+      background: transparent;
+      colour: var(--accent);
+      color: var(--accent);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    #new-game:hover {
+      background: #1f1f21;
+    }
+
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 1.3rem;
+      }
+      .tile {
+        font-size: 1.6rem;
+      }
+      .key {
+        font-size: 0.75rem;
+        padding: 0.45rem 0.15rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <header>
+      <h1>Fourdle</h1>
+      <small>Guess the four-letter British English word in six tries</small>
+    </header>
+
+    <main>
+      <div id="board" class="board" aria-label="Game board"></div>
+      <div id="message" class="message" aria-live="polite"></div>
+      <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+      <button id="new-game" type="button">New game</button>
+    </main>
+  </div>
+
+  <script>
+    // Basic four-letter British-English-friendly word list.
+    // In a real game you would expand this substantially.
+    const WORD_LIST = [
+      "ABLE","ACID","AGED","ALSO","AREA","ARSE","AUNT",
+      "BACK","BATH","BELL","BIRD","BLUE","BOAT","BOOK",
+      "BOTH","CALM","CARD","CARE","CASH","CHAT","CHEF",
+      "CHIP","CITY","CLUB","COAL","COAT","COLD","COST",
+      "CREW","CUPP","DARK","DASH","DATE","DEAL","DEBT",
+      "DEEP","DOOR","DOWN","EARN","EAST","EASY","EDGE",
+      "EVEN","EXIT","FACE","FACT","FAIR","FARM","FAST",
+      "FEEL","FILE","FINE","FIRM","FISH","FIVE","FLAT",
+      "FOOD","FOOT","FOUR","FREE","FROG","GATE","GIFT",
+      "GIRL","GOLF","GOOD","GREY","HAIR","HALF","HALL",
+      "HAND","HEAD","HEAT","HILL","HOME","HOPE","HOUR",
+      "IDEA","IRON","KING","LADY","LAKE","LAMB","LATE",
+      "LEAF","LEFT","LIFT","LINE","LINK","LIST","LONG",
+      "LOOK","LOST","MAIL","MAIN","MARK","MEAL","MEET",
+      "MILE","MIND","MINE","MOON","NAME","NEAR","NECK",
+      "NEWS","NICE","NOTE","OILS","ONLY","OPEN","OVER",
+      "PARK","PART","PASS","PATH","PEAK","PLAN","PLAY",
+      "POST","PRES","PUBS","RACE","RAIN","RAIL","RATE",
+      "READ","REAL","REST","RING","ROAD","ROOM","RULE",
+      "SAFE","SALE","SAND","SAVE","SEAT","SHIP","SHOP",
+      "SHOW","SIDE","SIGN","SIZE","SLOW","SNOW","SOFT",
+      "SONG","SOUP","STAR","STEP","STOP","SUIT","SUMS",
+      "TAKE","TALL","TEAM","TELL","TEST","TIDE","TINY",
+      "TOWN","TREE","TRIP","TRUE","TURN","TYPE","UNIT",
+      "VIEW","VOTE","WALK","WALL","WARM","WASH","WAVE",
+      "WEAR","WEEK","WELL","WEST","WIDE","WIND","WINE",
+      "WOOD","WORD","WORK","YARD","YARN"
+    ];
+
+    const WORD_LENGTH = 4;
+    const MAX_GUESSES = 6;
+
+    let secretWord = "";
+    let currentRow = 0;
+    let currentCol = 0;
+    let isGameOver = false;
+
+    const boardEl = document.getElementById("board");
+    const messageEl = document.getElementById("message");
+    const keyboardEl = document.getElementById("keyboard");
+    const newGameBtn = document.getElementById("new-game");
+
+    function pickSecretWord() {
+      const idx = Math.floor(Math.random() * WORD_LIST.length);
+      return WORD_LIST[idx];
+    }
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      for (let row = 0; row < MAX_GUESSES; row++) {
+        for (let col = 0; col < WORD_LENGTH; col++) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          tile.dataset.row = row;
+          tile.dataset.col = col;
+          boardEl.appendChild(tile);
+        }
+      }
+    }
+
+    function createKeyboard() {
+      keyboardEl.innerHTML = "";
+      const rows = [
+        "QWERTYUIOP",
+        "ASDFGHJKL",
+        "ZXCVBNM"
+      ];
+
+      // First row
+      for (const ch of rows[0]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      // Second row (offset by one empty cell for spacing)
+      const spacer = document.createElement("div");
+      spacer.style.visibility = "hidden";
+      keyboardEl.appendChild(spacer);
+      for (const ch of rows[1]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      // Third row with ENTER and DELETE
+      const enterKey = makeKeyButton("ENTER");
+      enterKey.classList.add("large");
+      keyboardEl.appendChild(enterKey);
+
+      for (const ch of rows[2]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      const delKey = makeKeyButton("DEL");
+      delKey.classList.add("large");
+      keyboardEl.appendChild(delKey);
+    }
+
+    function makeKeyButton(label) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key";
+      btn.textContent = label === "DEL" ? "⌫" : label;
+      btn.dataset.key = label;
+      btn.addEventListener("click", () => handleKey(label));
+      return btn;
+    }
+
+    function showMessage(text) {
+      messageEl.textContent = text;
+    }
+
+    function getTile(row, col) {
+      return boardEl.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function updateKeyboardColours(letterStatuses) {
+      // letterStatuses: map from letter to status ("correct", "present", "absent")
+      for (const [letter, status] of Object.entries(letterStatuses)) {
+        const keyBtn = keyboardEl.querySelector(`.key[data-key="${letter}"]`);
+        if (!keyBtn) continue;
+
+        // Upgrade logic: correct > present > absent
+        const current = keyBtn.dataset.status;
+        if (current === "correct") continue;
+        if (current === "present" && status === "absent") continue;
+
+        keyBtn.dataset.status = status;
+        keyBtn.classList.remove("correct", "present", "absent");
+        keyBtn.classList.add(status);
+      }
+    }
+
+    function handleKey(key) {
+      if (isGameOver) return;
+
+      if (key === "ENTER") {
+        submitGuess();
+      } else if (key === "DEL" || key === "Backspace") {
+        deleteLetter();
+      } else if (/^[A-Z]$/.test(key)) {
+        addLetter(key);
+      }
+    }
+
+    function addLetter(letter) {
+      if (currentCol >= WORD_LENGTH) return;
+      const tile = getTile(currentRow, currentCol);
+      tile.textContent = letter;
+      tile.classList.add("filled");
+      currentCol += 1;
+    }
+
+    function deleteLetter() {
+      if (currentCol === 0) return;
+      currentCol -= 1;
+      const tile = getTile(currentRow, currentCol);
+      tile.textContent = "";
+      tile.classList.remove("filled");
+    }
+
+    function submitGuess() {
+      if (currentCol < WORD_LENGTH) {
+        showMessage("Not enough letters");
+        return;
+      }
+
+      let guess = "";
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        guess += getTile(currentRow, col).textContent;
+      }
+      guess = guess.toUpperCase();
+
+      if (!WORD_LIST.includes(guess)) {
+        showMessage("Word not in list");
+        return;
+      }
+
+      // Evaluate guess
+      const evaluation = evaluateGuess(guess, secretWord);
+      const letterStatuses = {};
+
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        const tile = getTile(currentRow, col);
+        const status = evaluation[col];
+        tile.classList.add(status, "flip");
+        const letter = guess[col];
+
+        // Track best status for keyboard
+        const current = letterStatuses[letter];
+        if (current === "correct") {
+          // already the best
+        } else if (current === "present" && status === "absent") {
+          // ignore downgrade
+        } else {
+          letterStatuses[letter] = status;
+        }
+      }
+
+      updateKeyboardColours(letterStatuses);
+
+      if (guess === secretWord) {
+        showMessage("Splendid! You’ve got it.");
+        isGameOver = true;
+        return;
+      }
+
+      currentRow += 1;
+      currentCol = 0;
+
+      if (currentRow >= MAX_GUESSES) {
+        showMessage(`Unlucky – the word was ${secretWord}`);
+        isGameOver = true;
+      } else {
+        showMessage("");
+      }
+    }
+
+    function evaluateGuess(guess, secret) {
+      const result = Array(WORD_LENGTH).fill("absent");
+      const secretLetters = secret.split("");
+      const guessLetters = guess.split("");
+
+      // First pass: correct positions
+      const letterCounts = {};
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        const s = secretLetters[i];
+        letterCounts[s] = (letterCounts[s] || 0) + 1;
+      }
+
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (guessLetters[i] === secretLetters[i]) {
+          result[i] = "correct";
+          letterCounts[guessLetters[i]] -= 1;
+        }
+      }
+
+      // Second pass: present but misplaced
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (result[i] === "correct") continue;
+        const letter = guessLetters[i];
+        if (letterCounts[letter] > 0) {
+          result[i] = "present";
+          letterCounts[letter] -= 1;
+        }
+      }
+
+      return result;
+    }
+
+    function resetGame() {
+      secretWord = pickSecretWord();
+      currentRow = 0;
+      currentCol = 0;
+      isGameOver = false;
+      createBoard();
+      createKeyboard();
+      showMessage("New game – good luck!");
+      // For debugging you can log the secret:
+      // console.log("Secret word:", secretWord);
+    }
+
+    // Physical keyboard support
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      if (key === "Enter") {
+        handleKey("ENTER");
+      } else if (key === "Backspace" || key === "Delete") {
+        handleKey("Backspace");
+      } else {
+        const upper = key.toUpperCase();
+        if (/^[A-Z]$/.test(upper)) {
+          handleKey(upper);
+        }
+      }
+    });
+
+    newGameBtn.addEventListener("click", resetGame);
+
+    // Initialise
+    resetGame();
+  </script>
+</body>
+</html>

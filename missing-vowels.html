@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missing Vowels Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+        }
+
+        .puzzle-text {
+            font-family: 'Space Mono', monospace;
+            letter-spacing: -1px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Keyboard Key Style */
+        .key-hint {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-left: 8px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        button:hover .key-hint {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border-color: rgba(255,255,255,0.4);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
+
+    <!-- Game Container -->
+    <div class="w-full max-w-3xl bg-slate-800 border border-slate-700 shadow-2xl rounded-2xl overflow-hidden relative min-h-[600px] flex flex-col">
+        
+        <!-- Header -->
+        <header class="bg-slate-900/80 p-4 border-b border-slate-700 flex flex-wrap justify-between items-center backdrop-blur-md sticky top-0 z-10 gap-3">
+            <div class="flex items-center">
+                <h1 class="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 select-none cursor-pointer" onclick="app.init()">
+                    <i class="fa-solid fa-layer-group text-blue-500 mr-2"></i>MISSING VOWELS
+                </h1>
+            </div>
+
+            <!-- Global Stats -->
+            <div id="career-stats" class="text-xs font-mono text-slate-400 flex gap-4 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+                <span title="Total Career Score"><i class="fa-solid fa-trophy text-yellow-500 mr-1.5"></i><span id="career-score-display">0</span></span>
+                <span title="Total Rounds Played"><i class="fa-solid fa-gamepad text-purple-400 mr-1.5"></i><span id="career-games-display">0</span></span>
+            </div>
+
+            <!-- In-Game Stats -->
+            <div id="game-stats" class="hidden flex gap-4 text-sm font-mono items-center w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-700 pt-2 sm:pt-0 mt-2 sm:mt-0">
+                <span class="text-slate-400">Round <span id="round-display">1/5</span></span>
+                <span class="text-emerald-400"><i class="fa-solid fa-star mr-1"></i><span id="score-display">0</span></span>
+                <span class="text-blue-400 font-bold"><i class="fa-solid fa-clock mr-1"></i><span id="timer-display">60</span>s</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow p-4 sm:p-6 flex flex-col items-center justify-center w-full relative">
+            
+            <!-- SCREEN: TOP LEVEL MENU -->
+            <div id="menu-screen" class="w-full text-center space-y-6 fade-in flex flex-col h-full">
+                <div class="space-y-2">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">Select a Domain</h2>
+                    <p class="text-slate-400 text-sm sm:text-base">Choose a broad topic to reveal subcategories.</p>
+                </div>
+
+                <!-- Random Button -->
+                <button id="random-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white p-4 rounded-xl font-bold shadow-lg transform transition-all hover:-translate-y-0.5 border border-indigo-400/30 flex items-center justify-center gap-3 group">
+                    <i class="fa-solid fa-dice text-2xl group-hover:rotate-180 transition-transform duration-500"></i>
+                    <div class="text-left flex-1">
+                        <div class="uppercase tracking-wider text-xs text-indigo-200">Feeling Lucky?</div>
+                        <div class="text-lg flex items-center">
+                            Random Subcategory <span class="key-hint bg-indigo-500/30 border-indigo-300/30 text-indigo-100">R</span>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- Grid -->
+                <div id="domain-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full flex-grow overflow-y-auto pr-1 max-h-[450px]">
+                    <!-- Domains injected by JS -->
+                </div>
+            </div>
+
+            <!-- SCREEN: SUBMENU -->
+            <div id="submenu-screen" class="hidden w-full text-center space-y-6 fade-in flex flex-col h-full">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-center gap-3">
+                        <button id="back-to-menu-btn" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fa-solid fa-arrow-left text-xl"></i>
+                        </button>
+                        <h2 id="submenu-title" class="text-2xl sm:text-3xl font-bold text-white">Category</h2>
+                    </div>
+                    <p class="text-slate-400 text-sm sm:text-base">Select a specific topic to begin.</p>
+                </div>
+
+                <!-- Search/Filter -->
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" id="subcategory-search" placeholder="Search topics..." 
+                        class="w-full bg-slate-900 border border-slate-700 text-slate-200 pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder-slate-600">
+                </div>
+
+                <!-- Grid -->
+                <div id="subcategory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full flex-grow overflow-y-auto pr-1 max-h-[450px]">
+                    <!-- Subcategories injected by JS -->
+                </div>
+            </div>
+
+            <!-- SCREEN: GAMEPLAY -->
+            <div id="game-screen" class="hidden w-full flex flex-col items-center max-w-lg space-y-6 sm:space-y-8 fade-in">
+                
+                <div class="w-full text-center space-y-2">
+                    <div class="flex items-center justify-center gap-2 text-slate-500 mb-2">
+                        <span id="current-category-label" class="text-xs font-bold tracking-widest uppercase truncate max-w-[90vw]">CATEGORY</span>
+                    </div>
+                    
+                    <!-- The Puzzle Box -->
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 p-6 sm:p-10 rounded-2xl shadow-xl relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors duration-500"></div>
+                        <h2 id="puzzle-text" class="puzzle-text text-3xl sm:text-5xl font-bold text-center text-blue-100 break-words leading-tight relative z-10 min-h-[60px] flex items-center justify-center">
+                            LOADING
+                        </h2>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="w-full space-y-3">
+                    <div class="relative group">
+                        <input type="text" id="answer-input" 
+                            class="w-full bg-slate-900 border-2 border-slate-700 text-white p-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all text-lg text-center placeholder-slate-600 font-medium"
+                            placeholder="Type your answer..." autocomplete="off" spellcheck="false">
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hidden sm:block opacity-50">
+                            <span class="text-xs mr-1">ENTER</span> <i class="fa-solid fa-level-down-alt rotate-90"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button id="skip-btn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-3.5 rounded-xl font-semibold transition-colors border border-slate-600">
+                            Pass <span class="key-hint">Esc</span>
+                        </button>
+                        <button id="submit-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-semibold transition-colors shadow-lg shadow-emerald-900/20 border border-emerald-500/50">
+                            Submit
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="feedback-msg" class="h-6 text-sm font-bold tracking-wide uppercase"></div>
+            </div>
+
+            <!-- SCREEN: RESULTS -->
+            <div id="result-screen" class="hidden w-full text-center space-y-6 fade-in">
+                <div class="space-y-2 bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                    <div class="text-5xl mb-2 animate-bounce">🏁</div>
+                    <h2 class="text-2xl font-bold text-white">Round Complete!</h2>
+                    <div class="flex justify-center items-end gap-2 text-slate-300">
+                        <span class="text-sm mb-1">Score:</span>
+                        <span id="final-score" class="text-emerald-400 font-bold text-4xl leading-none">0</span>
+                        <span class="text-sm mb-1">/ 5</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-0 rounded-xl max-h-[300px] overflow-hidden flex flex-col text-left w-full">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase p-3 bg-slate-900/80 border-b border-slate-700 flex justify-between">
+                        <span>Round Review</span>
+                        <i class="fa-solid fa-list-check"></i>
+                    </h3>
+                    <div class="overflow-y-auto p-3">
+                        <ul id="answers-list" class="space-y-2 text-sm">
+                            <!-- History injected here -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button id="change-cat-btn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-bold transition-all">
+                        Back to Topics <span class="key-hint">C</span>
+                    </button>
+                    <button id="replay-cat-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg">
+                        Play Again <span class="key-hint">P</span>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+        
+        <!-- Footer -->
+        <footer class="p-4 text-center text-xs text-slate-600 border-t border-slate-800 bg-slate-900/50">
+            British English Edition &middot; Data stored locally
+        </footer>
+    </div>
+
+<script>
+/**
+ * MISSING VOWELS - HIERARCHICAL DATABASE
+ * * Structure:
+ * Domain -> Subcategories -> Array of Answers
+ */
+
+const GAME_DATA = {
+    "Literature": {
+        icon: "fa-book",
+        subcategories: {
+            "Classic Novels": [
+                "PRIDE AND PREJUDICE", "GREAT EXPECTATIONS", "MOBY DICK", "WAR AND PEACE",
+                "JANE EYRE", "THE GREAT GATSBY", "WUTHERING HEIGHTS", "FRANKENSTEIN",
+                "ANIMAL FARM", "MIDDLEMARCH", "A TALE OF TWO CITIES", "DRACULA",
+                "HEART OF DARKNESS", "THE WAR OF THE WORLDS", "OLIVER TWIST", "ROBINSON CRUSOE",
+                "GULLIVERS TRAVELS", "FAR FROM THE MADDING CROWD", "TESS OF THE DURBERVILLES", "BLEAK HOUSE"
+            ],
+            "American Poets": [
+                "WALT WHITMAN", "EMILY DICKINSON", "ROBERT FROST", "LANGSTON HUGHES",
+                "SYLVIA PLATH", "MAYA ANGELOU", "EDGAR ALLAN POE", "TS ELIOT", 
+                "EE CUMMINGS", "EZRA POUND"
+            ],
+            "Shakespeare Plays": [
+                "HAMLET", "MACBETH", "KING LEAR", "OTHELLO", "TWELFTH NIGHT",
+                "A MIDSUMMER NIGHTS DREAM", "ROMEO AND JULIET", "THE TEMPEST",
+                "JULIUS CAESAR", "THE MERCHANT OF VENICE", "RICHARD THE THIRD",
+                "HENRY THE FIFTH", "AS YOU LIKE IT", "THE TAMING OF THE SHREW",
+                "ANTONY AND CLEOPATRA", "THE WINTERS TALE", "MUCH ADO ABOUT NOTHING"
+            ],
+            "Children's Authors": [
+                "ROALD DAHL", "BEATRIX POTTER", "JACQUELINE WILSON", "CS LEWIS",
+                "ENID BLYTON", "AA MILNE", "JK ROWLING", "LEWIS CARROLL",
+                "JULIA DONALDSON", "MICHAEL MORPURGO", "TERRY PRATCHETT", "DAVID WALLIAMS"
+            ],
+            "Harry Potter Characters": [
+                "HARRY POTTER", "HERMIONE GRANGER", "RON WEASLEY", "ALBUS DUMBLEDORE",
+                "SEVERUS SNAPE", "LORD VOLDEMORT", "SIRIUS BLACK", "RUBEUS HAGRID",
+                "DRACO MALFOY", "NEVILLE LONGBOTTOM", "LUNA LOVEGOOD", "GINNY WEASLEY"
+            ]
+        }
+    },
+    "Film and Television": {
+        icon: "fa-film",
+        subcategories: {
+            "Best Picture Winners": [
+                "THE GODFATHER", "THE SILENCE OF THE LAMBS", "SLUMDOG MILLIONAIRE",
+                "THE KINGS SPEECH", "PARASITE", "EVERYTHING EVERYWHERE ALL AT ONCE",
+                "TITANIC", "GLADIATOR", "FORREST GUMP", "SCHINDLERS LIST",
+                "THE LORD OF THE RINGS", "CASABLANCA", "THE DEPARTED", "MOONLIGHT"
+            ],
+            "British Sitcoms": [
+                "FAWLTY TOWERS", "ONLY FOOLS AND HORSES", "BLACKADDER", "THE OFFICE",
+                "FATHER TED", "PEEP SHOW", "THE INBETWEENERS", "ABSOLUTELY FABULOUS",
+                "THE VICAR OF DIBLEY", "GAVIN AND STACEY", "SPACED", "RED DWARF",
+                "BOTTOM", "THE ROYLE FAMILY", "OUTNUMBERED", "FRIDAY NIGHT DINNER",
+                "GHOSTS", "FLEABAG", "DERRY GIRLS", "PORRIDGE", "YES MINISTER"
+            ],
+            "Animated Films": [
+                "TOY STORY", "THE LION KING", "SPIRITED AWAY", "FINDING NEMO",
+                "FROZEN", "SHREK", "WALL E", "UP", "THE INCREDIBLES",
+                "HOW TO TRAIN YOUR DRAGON", "INSIDE OUT", "COCO", "RATATOUILLE"
+            ],
+            "TV Detectives": [
+                "SHERLOCK HOLMES", "COLUMBO", "INSPECTOR MORSE", "VERA STANHOPE",
+                "ALEC HARDY", "TED HASTINGS", "HERCULE POIROT", "MISS MARPLE",
+                "LUTHER", "JONATHAN CREEK", "DOC MARTIN"
+            ],
+            "Blockbusters": [
+                "JURASSIC PARK", "PULP FICTION", "AVATAR", "THE DARK KNIGHT",
+                "INCEPTION", "THE MATRIX", "STAR WARS A NEW HOPE", "THE AVENGERS",
+                "BLACK PANTHER", "SKYFALL", "ET THE EXTRA TERRESTRIAL", "JAWS",
+                "BACK TO THE FUTURE", "RAIDERS OF THE LOST ARK", "BLADE RUNNER"
+            ]
+        }
+    },
+    "Music": {
+        icon: "fa-music",
+        subcategories: {
+            "Rock Bands": [
+                "THE ROLLING STONES", "LED ZEPPELIN", "PINK FLOYD", "QUEEN",
+                "FOO FIGHTERS", "RED HOT CHILI PEPPERS", "THE BEATLES", "THE WHO",
+                "BLACK SABBATH", "DEEP PURPLE", "FLEETWOOD MAC", "THE EAGLES",
+                "AEROSMITH", "AC DC", "GUNS N ROSES", "NIRVANA", "METALLICA",
+                "IRON MAIDEN", "THE DOORS", "RADIOHEAD", "U2", "THE POLICE"
+            ],
+            "Classical Composers": [
+                "LUDWIG VAN BEETHOVEN", "WOLFGANG AMADEUS MOZART", "JOHANN SEBASTIAN BACH",
+                "PYOTR ILYICH TCHAIKOVSKY", "CLAUDE DEBUSSY", "EDWARD ELGAR",
+                "ANTONIO VIVALDI", "FREDERIC CHOPIN", "FRANZ SCHUBERT", "JOHANNES BRAHMS",
+                "RICHARD WAGNER", "GUSTAV MAHLER", "IGOR STRAVINSKY"
+            ],
+            "Pop Divas": [
+                "MADONNA", "WHITNEY HOUSTON", "MARIAH CAREY", "BEYONCE",
+                "TAYLOR SWIFT", "ADELE", "CELINE DION", "LADY GAGA",
+                "RIHANNA", "ARIANA GRANDE", "BRITNEY SPEARS", "KYLIE MINOGUE"
+            ],
+            "Britpop Bands": [
+                "OASIS", "BLUR", "PULP", "SUEDE", "ELASTICA",
+                "SUPERGRASS", "THE VERVE", "STEREOPHONICS", "TRAVIS", "MANIC STREET PREACHERS"
+            ],
+            "Musical Instruments": [
+                "SAXOPHONE", "VIOLIN", "ELECTRIC GUITAR", "GRAND PIANO", "CLARINET",
+                "TAMBOURINE", "XYLOPHONE", "DIDGERIDOO", "ACCORDION", "HARMONICA",
+                "CELLO", "TRUMPET", "FLUTE", "DOUBLE BASS", "UKULELE", "SYNTHESIZER",
+                "TROMBONE", "FRENCH HORN", "BAGPIPES", "HARP", "BANJO", "OBOE", "BASSOON"
+            ]
+        }
+    },
+    "History and Politics": {
+        icon: "fa-landmark",
+        subcategories: {
+            "UK Prime Ministers": [
+                "CLEMENT ATTLEE", "WINSTON CHURCHILL", "MARGARET THATCHER", "TONY BLAIR",
+                "DAVID CAMERON", "RISHI SUNAK", "BORIS JOHNSON", "THERESA MAY",
+                "GORDON BROWN", "JOHN MAJOR", "HAROLD WILSON", "KEIR STARMER"
+            ],
+            "US Presidents (20th C)": [
+                "THEODORE ROOSEVELT", "FRANKLIN D ROOSEVELT", "JOHN F KENNEDY",
+                "RICHARD NIXON", "RONALD REAGAN", "BILL CLINTON", "GEORGE W BUSH",
+                "BARACK OBAMA", "DONALD TRUMP", "JOE BIDEN", "JIMMY CARTER", "LYNDON B JOHNSON"
+            ],
+            "Famous Revolutions": [
+                "FRENCH REVOLUTION", "AMERICAN REVOLUTION", "RUSSIAN REVOLUTION",
+                "INDUSTRIAL REVOLUTION", "GLORIOUS REVOLUTION", "CULTURAL REVOLUTION",
+                "HAITIAN REVOLUTION", "IRANIAN REVOLUTION"
+            ],
+            "Ancient Civilisations": [
+                "ANCIENT EGYPT", "ANCIENT GREECE", "ROMAN EMPIRE", "BABYLONIAN EMPIRE",
+                "MAYAN CIVILISATION", "INDUS VALLEY CIVILISATION", "AZTEC EMPIRE",
+                "OTTOMAN EMPIRE", "BYZANTINE EMPIRE", "MONGOL EMPIRE"
+            ],
+            "Famous Philosophers": [
+                "SOCRATES", "ARISTOTLE", "PLATO", "FRIEDRICH NIETZSCHE",
+                "IMMANUEL KANT", "RENE DESCARTES", "CONFUCIUS", "KARL MARX",
+                "DAVID HUME", "JOHN LOCKE", "SIMONE DE BEAUVOIR", "BERTRAND RUSSELL",
+                "JEAN PAUL SARTRE", "THOMAS HOBBES"
+            ]
+        }
+    },
+    "Geography": {
+        icon: "fa-earth-europe",
+        subcategories: {
+            "European Capitals": [
+                "PARIS", "BERLIN", "ROME", "MADRID", "VIENNA", "STOCKHOLM",
+                "LONDON", "AMSTERDAM", "LISBON", "COPENHAGEN", "DUBLIN",
+                "PRAGUE", "WARSAW", "BUDAPEST", "ATHENS", "BRUSSELS",
+                "HELSINKI", "OSLO", "REYKJAVIK"
+            ],
+            "African Countries": [
+                "NIGERIA", "KENYA", "SOUTH AFRICA", "EGYPT", "GHANA", "ETHIOPIA",
+                "MOROCCO", "TANZANIA", "IVORY COAST", "CAMEROON", "SENEGAL",
+                "ZIMBABWE", "ZAMBIA", "UGANDA", "RWANDA", "MADAGASCAR"
+            ],
+            "UK Cities": [
+                "LONDON", "EDINBURGH", "CARDIFF", "BELFAST", "MANCHESTER", "BIRMINGHAM",
+                "GLASGOW", "LIVERPOOL", "LEEDS", "BRISTOL", "SHEFFIELD",
+                "NEWCASTLE UPON TYNE", "NOTTINGHAM", "SOUTHAMPTON", "BRIGHTON"
+            ],
+            "World Rivers": [
+                "RIVER THAMES", "RIVER NILE", "AMAZON RIVER", "YANGTZE RIVER",
+                "MISSISSIPPI RIVER", "DANUBE RIVER", "RIVER GANGES", "VOLGA RIVER",
+                "RIVER RHINE", "MEKONG RIVER", "RIVER SEINE"
+            ],
+            "London Underground": [
+                "PICCADILLY CIRCUS", "LEICESTER SQUARE", "COVENT GARDEN",
+                "KINGS CROSS ST PANCRAS", "OXFORD CIRCUS", "WATERLOO",
+                "LONDON BRIDGE", "CANARY WHARF", "KNIGHTSBRIDGE", "WESTMINSTER",
+                "PADDINGTON", "BAKER STREET", "SOUTH KENSINGTON", "NOTTING HILL GATE"
+            ]
+        }
+    },
+    "Science and Nature": {
+        icon: "fa-flask",
+        subcategories: {
+            "Chemical Elements": [
+                "HYDROGEN", "HELIUM", "CARBON", "OXYGEN", "IRON", "URANIUM",
+                "LITHIUM", "NITROGEN", "NEON", "SODIUM", "MAGNESIUM", "ALUMINIUM",
+                "SILICON", "PHOSPHORUS", "SULPHUR", "CHLORINE", "ARGON", "POTASSIUM",
+                "CALCIUM", "TITANIUM", "COPPER", "ZINC", "SILVER", "GOLD", "MERCURY", "LEAD"
+            ],
+            "Human Anatomy": [
+                "FEMUR", "TIBIA", "SKULL", "VERTEBRAE", "HUMERUS", "SCAPULA",
+                "CRANIUM", "MANDIBLE", "CLAVICLE", "PATELLA", "FIBULA",
+                "STERNUM", "RIB CAGE", "PELVIS", "METACARPALS"
+            ],
+            "Constellations": [
+                "ORION", "URSA MAJOR", "SCORPIUS", "CASSIOPEIA", "CYGNUS", "LEO",
+                "URSA MINOR", "GEMINI", "TAURUS", "PEGASUS", "ANDROMEDA", "AQUARIUS"
+            ],
+            "Dog Breeds": [
+                "LABRADOR RETRIEVER", "GERMAN SHEPHERD", "BORDER COLLIE",
+                "GOLDEN RETRIEVER", "DALMATIAN", "POODLE", "BEAGLE", "BULLDOG",
+                "DACHSHUND", "ROTTWEILER", "BOXER", "CHIHUAHUA", "GREAT DANE",
+                "SIBERIAN HUSKY", "DOBERMANN", "SHIH TZU", "PUG", "COCKER SPANIEL"
+            ],
+            "Vegetables & Herbs": [
+                "ASPARAGUS", "BROCCOLI", "COURGETTE", "AUBERGINE", "CORIANDER",
+                "ROSEMARY", "CAULIFLOWER", "BRUSSELS SPROUTS", "SWEET POTATO",
+                "ARTICHOKE", "SPINACH", "PARSNIP", "THYME", "BASIL", "BUTTERNUT SQUASH",
+                "CELERY", "LEEK", "BEETROOT", "RHUBARB", "WATERCRESS"
+            ],
+            "Space": [
+                "MILKY WAY GALAXY", "ANDROMEDA GALAXY", "SOLAR SYSTEM", "BLACK HOLE",
+                "SUPERNOVA", "NEBULA", "ASTEROID BELT", "INTERNATIONAL SPACE STATION",
+                "HUBBLE SPACE TELESCOPE", "RED GIANT", "WHITE DWARF", "NEUTRON STAR",
+                "EVENT HORIZON", "DARK MATTER"
+            ]
+        }
+    },
+    "Sport and Games": {
+        icon: "fa-medal",
+        subcategories: {
+            "Football Clubs": [
+                "MANCHESTER UNITED", "LIVERPOOL", "ARSENAL", "CHELSEA",
+                "TOTTENHAM HOTSPUR", "NEWCASTLE UNITED", "MANCHESTER CITY",
+                "ASTON VILLA", "EVERTON", "WEST HAM UNITED", "LEEDS UNITED",
+                "CELTIC", "RANGERS", "REAL MADRID", "BARCELONA", "BAYERN MUNICH"
+            ],
+            "Olympic Sports": [
+                "ARTISTIC GYMNASTICS", "TRACK CYCLING", "SYNCHRONIZED SWIMMING",
+                "ARCHERY", "JUDO", "BEACH VOLLEYBALL", "ATHLETICS", "SWIMMING",
+                "BADMINTON", "WEIGHTLIFTING", "TRIATHLON", "TAEKWONDO",
+                "SKATEBOARDING", "ROWING", "FENCING", "TABLE TENNIS", "WATER POLO"
+            ],
+            "Board Games": [
+                "MONOPOLY", "SCRABBLE", "CLUEDO", "CHESS", "SETTLERS OF CATAN",
+                "TICKET TO RIDE", "BACKGAMMON", "RISK", "BATTLESHIP", "CONNECT FOUR",
+                "TRIVIAL PURSUIT", "PICTIONARY", "OPERATION", "SNAKES AND LADDERS",
+                "DUNGEONS AND DRAGONS", "YAHTZEE", "CARCASSONNE", "PANDEMIC"
+            ],
+            "Tennis Tournaments": [
+                "WIMBLEDON", "AUSTRALIAN OPEN", "FRENCH OPEN", "US OPEN",
+                "ATP FINALS", "DAVIS CUP", "BILLIE JEAN KING CUP", "LAVER CUP"
+            ]
+        }
+    },
+    "Culture and Miscellany": {
+        icon: "fa-martini-glass",
+        subcategories: {
+            "Cocktails": [
+                "MARGARITA", "MARTINI", "MOJITO", "OLD FASHIONED", "NEGRONI",
+                "PINA COLADA", "COSMOPOLITAN", "DAIQUIRI", "MANHATTAN",
+                "ESPRESSO MARTINI", "WHISKEY SOUR", "BLOODY MARY", "LONG ISLAND ICED TEA"
+            ],
+            "Car Marques": [
+                "VOLKSWAGEN", "TOYOTA", "FORD", "FERRARI", "BMW", "ASTON MARTIN",
+                "MERCEDES BENZ", "PORSCHE", "LAMBORGHINI", "AUDI", "HONDA",
+                "NISSAN", "CHEVROLET", "JAGUAR", "LAND ROVER", "BENTLEY", "ROLLS ROYCE"
+            ],
+            "Mythical Creatures": [
+                "UNICORN", "DRAGON", "PHOENIX", "PEGASUS", "MINOTAUR", "MERMAID",
+                "GRIFFIN", "CENTAUR", "WEREWOLF", "VAMPIRE", "CYCLOPS", "HYDRA",
+                "MEDUSA", "CHIMERA", "KRAKEN", "YETI", "BIGFOOT", "LOCH NESS MONSTER"
+            ],
+            "British Newspapers": [
+                "THE TIMES", "THE GUARDIAN", "DAILY TELEGRAPH", "FINANCIAL TIMES",
+                "DAILY MAIL", "THE SUN", "DAILY MIRROR", "DAILY EXPRESS",
+                "THE INDEPENDENT", "THE OBSERVER", "SUNDAY TIMES"
+            ],
+            "Types of Pasta": [
+                "SPAGHETTI", "PENNE", "FUSILLI", "MACARONI", "TAGLIATELLE",
+                "FETTUCCINE", "LINGUINE", "RAVIOLI", "TORTELLINI", "LASAGNE",
+                "CANNELLONI", "FARFALLE", "GNOCCHI", "ORZO", "RIGATONI"
+            ],
+            "Famous Painters": [
+                "LEONARDO DA VINCI", "MICHELANGELO", "VINCENT VAN GOGH", "PABLO PICASSO",
+                "REMBRANDT", "CLAUDE MONET", "SALVADOR DALI", "FRIDA KAHLO",
+                "JOHANNES VERMEER", "EDVARD MUNCH", "GUSTAV KLIMT", "HENRI MATISSE",
+                "ANDY WARHOL", "JACKSON POLLOCK"
+            ]
+        }
+    }
+};
+
+const ROUND_SIZE = 5;
+
+class GameApp {
+    constructor() {
+        this.score = 0;
+        this.timeLeft = 60;
+        this.currentDomain = null;
+        this.currentSubcategory = null;
+        this.wordQueue = [];
+        this.currentWord = "";
+        this.timerInterval = null;
+        this.gameActive = false;
+        this.history = []; 
+        this.wordsPlayed = 0;
+        this.currentScreen = 'menu'; // menu, submenu, game, result
+        this.careerStats = {
+            totalScore: 0,
+            gamesPlayed: 0
+        };
+
+        // DOM Elements
+        this.screens = {
+            menu: document.getElementById('menu-screen'),
+            submenu: document.getElementById('submenu-screen'),
+            game: document.getElementById('game-screen'),
+            result: document.getElementById('result-screen')
+        };
+        
+        this.els = {
+            domainGrid: document.getElementById('domain-grid'),
+            subcategoryGrid: document.getElementById('subcategory-grid'),
+            submenuTitle: document.getElementById('submenu-title'),
+            subcategorySearch: document.getElementById('subcategory-search'),
+            backBtn: document.getElementById('back-to-menu-btn'),
+            
+            puzzleText: document.getElementById('puzzle-text'),
+            input: document.getElementById('answer-input'),
+            score: document.getElementById('score-display'),
+            timer: document.getElementById('timer-display'),
+            stats: document.getElementById('game-stats'),
+            roundDisplay: document.getElementById('round-display'),
+            currentCatLabel: document.getElementById('current-category-label'),
+            feedback: document.getElementById('feedback-msg'),
+            answersList: document.getElementById('answers-list'),
+            finalScore: document.getElementById('final-score'),
+            submitBtn: document.getElementById('submit-btn'),
+            skipBtn: document.getElementById('skip-btn'),
+            careerScore: document.getElementById('career-score-display'),
+            careerGames: document.getElementById('career-games-display'),
+            randomBtn: document.getElementById('random-btn'),
+            replayBtn: document.getElementById('replay-cat-btn'),
+            changeCatBtn: document.getElementById('change-cat-btn')
+        };
+
+        this.bindEvents();
+        this.loadData();
+        this.init();
+    }
+
+    /* --- DATA PERSISTENCE --- */
+    
+    loadData() {
+        const stored = localStorage.getItem('missingVowels_stats_v2');
+        if (stored) {
+            this.careerStats = JSON.parse(stored);
+        }
+        this.updateCareerUI();
+    }
+
+    saveData() {
+        localStorage.setItem('missingVowels_stats_v2', JSON.stringify(this.careerStats));
+        this.updateCareerUI();
+    }
+
+    updateCareerUI() {
+        this.els.careerScore.textContent = this.careerStats.totalScore;
+        this.els.careerGames.textContent = this.careerStats.gamesPlayed;
+    }
+
+    /* --- INIT & EVENTS --- */
+
+    init() {
+        this.showScreen('menu');
+        this.renderDomains();
+        this.els.stats.classList.add('hidden');
+        this.els.subcategorySearch.value = '';
+    }
+
+    bindEvents() {
+        // Global Keyboard Handler
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+
+            // Menu Screen Shortcuts
+            if (this.currentScreen === 'menu') {
+                if (key === 'r') {
+                    e.preventDefault(); // Stop 'r' from being typed
+                    this.startRandomGame();
+                }
+            }
+            // Submenu Screen Shortcuts
+            else if (this.currentScreen === 'submenu') {
+                if (key === 'escape') this.init();
+                if (key === '/' && document.activeElement !== this.els.subcategorySearch) {
+                    e.preventDefault();
+                    this.els.subcategorySearch.focus();
+                }
+            }
+            // Game Screen Shortcuts
+            else if (this.currentScreen === 'game') {
+                if (key === 'enter') this.checkAnswer();
+                if (key === 'escape') this.skipWord();
+            }
+            // Result Screen Shortcuts
+            else if (this.currentScreen === 'result') {
+                if (key === 'c') {
+                    e.preventDefault();
+                    this.openSubmenu(this.currentDomain); 
+                }
+                if (key === 'p') {            
+                    e.preventDefault(); // Stop 'p' from being typed
+                    if (this.currentSubcategory) {
+                        this.startGame(this.currentDomain, this.currentSubcategory);
+                    }
+                }
+            }
+        });
+
+        this.els.submitBtn.addEventListener('click', () => this.checkAnswer());
+        this.els.skipBtn.addEventListener('click', () => this.skipWord());
+        this.els.backBtn.addEventListener('click', () => this.init());
+        
+        // Random Button
+        this.els.randomBtn.addEventListener('click', () => this.startRandomGame());
+
+        // Search Filter
+        this.els.subcategorySearch.addEventListener('input', (e) => {
+            this.renderSubcategories(this.currentDomain, e.target.value);
+        });
+
+        // Replay Button
+        this.els.replayBtn.addEventListener('click', () => {
+            if (this.currentSubcategory) {
+                this.startGame(this.currentDomain, this.currentSubcategory);
+            }
+        });
+
+        // Change Category Button (Goes back to submenu of current domain)
+        this.els.changeCatBtn.addEventListener('click', () => {
+            this.openSubmenu(this.currentDomain);
+        });
+    }
+
+    /* --- MENU LOGIC --- */
+
+    renderDomains() {
+        this.els.domainGrid.innerHTML = '';
+        const domains = Object.keys(GAME_DATA).sort();
+        
+        domains.forEach(domain => {
+            const data = GAME_DATA[domain];
+            const subCount = Object.keys(data.subcategories).length;
+            const totalWords = Object.values(data.subcategories).flat().length;
+
+            const btn = document.createElement('button');
+            btn.className = "bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-blue-400 text-left p-4 rounded-xl transition-all group flex flex-col justify-between min-h-[100px] relative overflow-hidden shadow-sm";
+            btn.innerHTML = `
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fa-solid ${data.icon} text-4xl"></i>
+                </div>
+                <div class="font-bold text-white group-hover:text-blue-300 transition-colors z-10 pr-8 leading-tight text-lg">${domain}</div>
+                <div class="text-xs text-slate-400 mt-2 flex justify-between items-center z-10">
+                    <span>${subCount} Subcategories</span>
+                    <i class="fa-solid fa-arrow-right opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all text-blue-400"></i>
+                </div>
+            `;
+            btn.onclick = () => this.openSubmenu(domain);
+            this.els.domainGrid.appendChild(btn);
+        });
+    }
+
+    openSubmenu(domain) {
+        this.currentDomain = domain;
+        this.els.submenuTitle.textContent = domain;
+        this.renderSubcategories(domain);
+        this.showScreen('submenu');
+        this.els.subcategorySearch.value = '';
+        // Focus search shortly after opening
+        setTimeout(() => this.els.subcategorySearch.focus(), 100);
+    }
+
+    renderSubcategories(domain, filter = "") {
+        this.els.subcategoryGrid.innerHTML = '';
+        const subcats = GAME_DATA[domain].subcategories;
+        const sortedSubcats = Object.keys(subcats).sort();
+
+        sortedSubcats.forEach(sub => {
+            if (filter && !sub.toLowerCase().includes(filter.toLowerCase())) return;
+
+            const wordCount = subcats[sub].length;
+            
+            const btn = document.createElement('button');
+            btn.className = "bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500 text-left p-3 rounded-lg transition-all group flex flex-col justify-between min-h-[80px]";
+            btn.innerHTML = `
+                <div class="font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors">${sub}</div>
+                <div class="text-xs text-slate-500 mt-1">${wordCount} items</div>
+            `;
+            btn.onclick = () => this.startGame(domain, sub);
+            this.els.subcategoryGrid.appendChild(btn);
+        });
+    }
+
+    startRandomGame() {
+        const domains = Object.keys(GAME_DATA);
+        const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+        
+        const subcats = Object.keys(GAME_DATA[randomDomain].subcategories);
+        const randomSub = subcats[Math.floor(Math.random() * subcats.length)];
+        
+        this.startGame(randomDomain, randomSub);
+    }
+
+    /* --- GAME LOGIC --- */
+
+    startGame(domain, subcategory) {
+        this.currentDomain = domain;
+        this.currentSubcategory = subcategory;
+        this.score = 0;
+        this.timeLeft = 60;
+        this.history = [];
+        this.wordsPlayed = 0;
+        
+        // Clone, Shuffle, and Pick 5
+        const fullPool = [...GAME_DATA[domain].subcategories[subcategory]];
+        
+        // Fisher-Yates shuffle
+        for (let i = fullPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [fullPool[i], fullPool[j]] = [fullPool[j], fullPool[i]];
+        }
+        
+        this.wordQueue = fullPool.slice(0, ROUND_SIZE);
+        
+        this.updateStats();
+        // Breadcrumb style label
+        this.els.currentCatLabel.innerHTML = `<span class="opacity-60">${domain}</span> <i class="fa-solid fa-chevron-right text-[10px] mx-1 opacity-40"></i> ${subcategory}`;
+        this.els.stats.classList.remove('hidden');
+        this.els.feedback.textContent = '';
+        this.els.input.value = '';
+
+        this.showScreen('game');
+        this.gameActive = true;
+        
+        this.nextWord();
+        this.startTimer();
+        
+        // Focus input
+        setTimeout(() => this.els.input.focus(), 100);
+    }
+
+    generatePuzzle(phrase) {
+        // Remove Vowels & Spaces, preserve Numbers roughly? No, just alpha.
+        const noVowels = phrase.replace(/[aeiou\s\-\.\,\']/gi, '').toUpperCase();
+        
+        let result = "";
+        let i = 0;
+        
+        while (i < noVowels.length) {
+            let remaining = noVowels.length - i;
+            let chunkSize = Math.floor(Math.random() * 3) + 2; // 2, 3, or 4
+
+            if (remaining <= 4) {
+                chunkSize = remaining;
+            } else if (remaining - chunkSize === 1) {
+                chunkSize += 1;
+            }
+
+            result += noVowels.substr(i, chunkSize) + " ";
+            i += chunkSize;
+        }
+
+        return result.trim();
+    }
+
+    nextWord() {
+        if (this.wordQueue.length === 0) {
+            this.endGame();
+            return;
+        }
+
+        this.wordsPlayed++;
+        this.currentWord = this.wordQueue.pop();
+        const puzzle = this.generatePuzzle(this.currentWord);
+        
+        this.els.roundDisplay.textContent = `${this.wordsPlayed}/${ROUND_SIZE}`;
+        
+        // Reset Input state
+        this.els.input.classList.remove('border-red-500', 'text-red-300');
+        
+        // Animation
+        this.els.puzzleText.parentElement.classList.add('scale-95', 'opacity-50');
+        setTimeout(() => {
+            this.els.puzzleText.textContent = puzzle;
+            this.els.puzzleText.parentElement.classList.remove('scale-95', 'opacity-50');
+        }, 150);
+    }
+
+    checkAnswer() {
+        if (!this.gameActive) return;
+
+        const userGuess = this.els.input.value;
+        if (!userGuess.trim()) return;
+
+        // Lenient check: remove all non-alphanumeric chars
+        const cleanGuess = userGuess.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const cleanTarget = this.currentWord.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+        if (cleanGuess === cleanTarget) {
+            this.handleSuccess();
+        } else {
+            this.handleFail();
+        }
+    }
+
+    handleSuccess() {
+        this.score++;
+        this.showFeedback("Correct!", "text-emerald-400");
+        this.history.push({ word: this.currentWord, status: 'correct', guess: this.els.input.value });
+        this.updateStats();
+        this.els.input.value = '';
+        this.nextWord();
+    }
+
+    handleFail() {
+        const container = this.els.input.parentElement;
+        container.classList.add('shake');
+        this.els.input.classList.add('border-red-500', 'text-red-300');
+        
+        setTimeout(() => {
+            container.classList.remove('shake');
+            this.els.input.classList.remove('border-red-500', 'text-red-300');
+            this.els.input.focus();
+        }, 500);
+
+        this.showFeedback("Try again", "text-red-400");
+    }
+
+    skipWord() {
+        if(!this.gameActive) return;
+        this.history.push({ word: this.currentWord, status: 'skipped' });
+        this.showFeedback("Skipped", "text-yellow-400");
+        this.els.input.value = '';
+        this.nextWord();
+        this.els.input.focus();
+    }
+
+    startTimer() {
+        clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => {
+            this.timeLeft--;
+            this.updateStats();
+            
+            if (this.timeLeft <= 0) {
+                this.endGame();
+            }
+        }, 1000);
+    }
+
+    updateStats() {
+        this.els.score.textContent = this.score;
+        this.els.timer.textContent = this.timeLeft;
+        
+        const timerContainer = this.els.timer.parentElement;
+        if (this.timeLeft <= 10) {
+            timerContainer.classList.add('text-red-400', 'animate-pulse');
+            timerContainer.classList.remove('text-blue-400');
+        } else {
+            timerContainer.classList.remove('text-red-400', 'animate-pulse');
+            timerContainer.classList.add('text-blue-400');
+        }
+    }
+
+    showFeedback(msg, colorClass) {
+        this.els.feedback.className = `h-6 text-sm font-bold tracking-wide uppercase transition-all ${colorClass}`;
+        this.els.feedback.textContent = msg;
+        setTimeout(() => {
+            if (this.els.feedback.textContent === msg) {
+                this.els.feedback.textContent = '';
+            }
+        }, 2000);
+    }
+
+    endGame() {
+        this.gameActive = false;
+        clearInterval(this.timerInterval);
+        
+        // Fill history for unseen words if time ran out
+        if (this.wordQueue.length > 0) {
+            while (this.wordQueue.length > 0) {
+                const w = this.wordQueue.pop();
+                this.history.push({ word: w, status: 'unseen' });
+            }
+        }
+        // If current word was active but not answered
+        if (this.history.length < 5 && !this.history.find(h => h.word === this.currentWord)) {
+             this.history.push({ word: this.currentWord, status: 'unseen' });
+        }
+
+        this.els.finalScore.textContent = this.score;
+        
+        // Update persistent stats
+        this.careerStats.totalScore += this.score;
+        this.careerStats.gamesPlayed += 1;
+        this.saveData();
+
+        // Render History
+        this.els.answersList.innerHTML = this.history.map(item => {
+            let badgeClass = "";
+            let statusText = item.status;
+            
+            if (item.status === 'correct') {
+                badgeClass = "bg-emerald-900/50 text-emerald-400 border border-emerald-700/50";
+                statusText = '<i class="fa-solid fa-check"></i>';
+            } else if (item.status === 'skipped') {
+                badgeClass = "bg-yellow-900/50 text-yellow-400 border border-yellow-700/50";
+                statusText = '<i class="fa-solid fa-forward"></i>';
+            } else {
+                badgeClass = "bg-slate-700 text-slate-400 border border-slate-600";
+                statusText = '<i class="fa-solid fa-times"></i>';
+            }
+
+            return `
+            <li class="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                <span class="text-slate-200 font-medium">${item.word}</span>
+                <span class="text-xs font-bold w-8 h-8 flex items-center justify-center rounded-full ${badgeClass}">
+                    ${statusText}
+                </span>
+            </li>
+            `;
+        }).join('');
+
+        this.showScreen('result');
+    }
+
+    showScreen(screenName) {
+        this.currentScreen = screenName;
+        Object.values(this.screens).forEach(el => el.classList.add('hidden'));
+        this.screens[screenName].classList.remove('hidden');
+    }
+}
+
+// Start the app
+const app = new GameApp();
+
+</script>
+</body>
+</html>
