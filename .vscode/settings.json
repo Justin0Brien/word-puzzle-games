@@ -1,0 +1,30 @@
+{
+  // Allow Copilot to run terminal commands without explicit approval each time
+  "github.copilot.chat.runCommand.enabled": true,
+  
+  // Auto-approve specific terminal commands for Copilot
+  // These are commands used frequently in this project
+  "chat.commandCenter.enabled": true,
+  
+  // Terminal settings for smoother automation
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+  
+  // GitHub Copilot specific settings
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "html": true,
+    "javascript": true,
+    "json": true
+  },
+  
+  // Allow Copilot agent mode to execute tasks
+  "chat.agent.enabled": true,
+  "chat.agent.maxRequests": 30,
+  
+  // MCP and tool settings if available
+  "chat.mcp.enabled": true
+}
