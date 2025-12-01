@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wordle – 5-Letter Word Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .game { max-width: 520px; }
+    .board {
+      grid-template-columns: repeat(5, 1fr);
+      max-width: 350px;
+      gap: 0.35rem;
+    }
+    .tile { font-size: 2rem; }
+    @media (max-width: 480px) {
+      .tile { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <header>
+      <h1>Wordle</h1>
+      <small>Guess the five-letter British English word in six tries</small>
+    </header>
+
+    <main>
+      <div id="board" class="board" aria-label="Game board"></div>
+      <div id="message" class="message" aria-live="polite"></div>
+      <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+      <button id="new-game" type="button">New game</button>
+      <div id="word-info" class="word-info" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <script>
+    // British English 5-letter words from Hunspell en_GB dictionary
+    const WORD_LIST = [
+      "ABASH","ABATE","ABBEY","ABBOT","ABHOR","ABIDE","ABLER","ABODE","ABORT","ABOUT",
+      "ABOVE","ABUSE","ABYSS","ACORN","ACRID","ACTED","ACTOR","ACUTE","ADAGE","ADAPT",
+      "ADDED","ADDER","ADEPT","ADMIN","ADMIT","ADOBE","ADOPT","ADORE","ADORN","ADULT",
+      "AEGIS","AFIRE","AFFIX","AFOOT","AFTER","AGAIN","AGENT","AGGRO","AGILE","AGING",
+      "AGLOW","AGONY","AGREE","AHEAD","AIDED","AIDER","AIMED","AIMER","AISLE","ALARM",
+      "ALBUM","ALERT","ALGAE","ALIBI","ALIEN","ALIGN","ALIKE","ALIVE","ALLAY","ALLEY",
+      "ALLOT","ALLOW","ALLOY","ALOFT","ALONE","ALONG","ALOOF","ALOUD","ALPHA","ALTAR",
+      "ALTER","AMASS","AMAZE","AMBER","AMBIT","AMBLE","AMEND","AMPLE","AMPLY","AMUSE",
+      "ANGEL","ANGER","ANGLE","ANGRY","ANGST","ANIME","ANKLE","ANNEX","ANNOY","ANVIL",
+      "AORTA","APART","APHID","APNEA","APPLE","APPLY","APRON","APTLY","ARBOR","ARENA",
+      "ARGUE","ARISE","ARMED","AROMA","AROSE","ARRAY","ARROW","ARSON","ARTSY","ASCOT",
+      "ASHEN","ASHES","ASIAN","ASIDE","ASKED","ASSET","ATLAS","ATOLL","ATONE","ATTIC",
+      "AUDIO","AUDIT","AUGUR","AURAL","AVAIL","AVERT","AVIAN","AVOID","AWAIT","AWAKE",
+      "AWARD","AWARE","AWASH","AWFUL","AXIAL","AXIOM","BACON","BADGE","BADLY","BAGEL",
+      "BAGGY","BAKED","BAKER","BALLS","BANAL","BANJO","BARGE","BARON","BASAL","BASED",
+      "BASIC","BASIL","BASIN","BASIS","BATCH","BATON","BEACH","BEADY","BEARD","BEAST",
+      "BEGAN","BEGIN","BEGUN","BEING","BELCH","BELLE","BELLY","BELOW","BENCH","BERRY",
+      "BERTH","BESET","BEZEL","BIBLE","BIGOT","BINGE","BINGO","BIOME","BIRCH","BIRTH",
+      "BLACK","BLADE","BLAME","BLAND","BLANK","BLARE","BLAST","BLAZE","BLEAK","BLEAT",
+      "BLEED","BLEND","BLESS","BLIMP","BLIND","BLISS","BLITZ","BLOAT","BLOCK","BLOKE",
+      "BLOND","BLOOD","BLOOM","BLOWN","BLUES","BLUFF","BLUNT","BLURB","BLURT","BLUSH",
+      "BOARD","BOAST","BOGUS","BOILS","BOLTS","BONDS","BONED","BONER","BONES","BONUS",
+      "BOOBY","BOOKS","BOOST","BOOTH","BOOZE","BOOZY","BORED","BORNE","BOSOM","BOSSY",
+      "BOTCH","BOUGH","BOUND","BOWEL","BOXER","BRACE","BRAID","BRAIN","BRAKE","BRAND",
+      "BRASH","BRASS","BRAVE","BRAWL","BRAWN","BREAD","BREAK","BREED","BRIAR","BRIBE",
+      "BRICK","BRIDE","BRIEF","BRINE","BRING","BRINK","BRISK","BROAD","BROIL","BROKE",
+      "BROOD","BROOK","BROOM","BROTH","BROWN","BRUNT","BRUSH","BRUTE","BUDDY","BUDGE",
+      "BUGGY","BUGLE","BUILD","BUILT","BULGE","BULKY","BULLY","BUNCH","BUNNY","BURST",
+      "BUYER","BYLAW","CABIN","CABLE","CACHE","CADET","CAIRN","CAMEL","CAMEO","CANAL",
+      "CANDY","CANNY","CANOE","CAPER","CARAT","CARDS","CARER","CARGO","CAROL","CARRY",
+      "CARVE","CATCH","CATER","CATTY","CAUSE","CAVIL","CEASE","CEDAR","CHAIN","CHAIR",
+      "CHALK","CHAMP","CHANT","CHAOS","CHARD","CHARM","CHART","CHASE","CHEAP","CHEAT",
+      "CHECK","CHEEK","CHEER","CHESS","CHEST","CHICK","CHIDE","CHIEF","CHILD","CHILL",
+      "CHIMP","CHINA","CHIRP","CHIVE","CHOIR","CHOKE","CHORD","CHORE","CHOSE","CHUCK",
+      "CHUNK","CHURN","CIDER","CIGAR","CINCH","CIRCA","CITED","CIVIC","CIVIL","CLAIM",
+      "CLAMP","CLANG","CLANK","CLASH","CLASP","CLASS","CLAW","CLEAN","CLEAR","CLEAT",
+      "CLERK","CLICK","CLIFF","CLIMB","CLING","CLOAK","CLOCK","CLONE","CLOSE","CLOTH",
+      "CLOUD","CLOUT","CLOWN","CLUBS","CLUCK","CLUED","CLUMP","CLUNG","COACH","COAST",
+      "COBRA","COCOA","COILS","COINS","COLON","COLOUR","COMET","COMIC","COMMA","CONCH",
+      "CONDO","CONIC","CORAL","CORGI","CORPS","COUCH","COUGH","COULD","COUNT","COUPE",
+      "COURT","COVER","COVET","COWER","CRACK","CRAFT","CRAMP","CRANE","CRANK","CRASH",
+      "CRASS","CRATE","CRAVE","CRAWL","CRAZE","CRAZY","CREAK","CREAM","CREED","CREEK",
+      "CREEP","CREME","CREPE","CREST","CRICK","CRIED","CRIER","CRIME","CRIMP","CRISP",
+      "CROAK","CROCK","CROOK","CROPS","CROSS","CROWD","CROWN","CRUDE","CRUEL","CRUMB",
+      "CRUSH","CRUST","CRYPT","CUBIC","CUMIN","CURLY","CURRY","CURSE","CURVE","CURVY",
+      "CUTIE","CYCLE","CYNIC","DADDY","DAILY","DAIRY","DAISY","DANCE","DANDY","DATED",
+      "DATUM","DEALS","DEALT","DEATH","DEBAR","DEBIT","DEBUG","DEBUT","DECAL","DECAY",
+      "DECOR","DECOY","DECRY","DEITY","DELAY","DELTA","DELVE","DEMON","DEMUR","DENIM",
+      "DENSE","DEPOT","DEPTH","DERBY","DETER","DETOX","DEUCE","DEVIL","DIARY","DICEY",
+      "DIGIT","DINER","DINGY","DIODE","DIRTY","DISCO","DITCH","DITTO","DITTY","DIVER",
+      "DIZZY","DODGE","DODGY","DOGMA","DOING","DOLLY","DONOR","DONUT","DOPEY","DOUBT",
+      "DOUGH","DOUSE","DOWDY","DOWEL","DOWNS","DOWNY","DOZEN","DRAFT","DRAIN","DRAKE",
+      "DRAMA","DRANK","DRAPE","DRAWL","DRAWN","DREAD","DREAM","DRESS","DRIED","DRIER",
+      "DRIFT","DRILL","DRINK","DRIVE","DROIT","DROLL","DRONE","DROOL","DROOP","DROPS",
+      "DROSS","DROVE","DROWN","DRUGS","DRUMS","DRUNK","DRYER","DRYLY","DUCHY","DULLY",
+      "DUMMY","DUMPS","DUMPY","DUNCE","DUNES","DUSTY","DUTCH","DUVET","DWARF","DWELL",
+      "DYING","EAGER","EAGLE","EARLY","EARTH","EASEL","EATEN","EATER","EBONY","EDGED",
+      "EDGER","EDICT","EIGHT","EJECT","ELDER","ELECT","ELEGY","ELFIN","ELITE","ELOPE",
+      "ELUDE","ELVES","EMAIL","EMBED","EMBER","EMCEE","EMPTY","ENACT","ENDED","ENDOW",
+      "ENEMA","ENEMY","ENJOY","ENNUI","ENSUE","ENTER","ENTRY","ENVOY","EPOCH","EQUAL",
+      "EQUIP","ERASE","ERECT","ERODE","ERROR","ERUPT","ESSAY","ETHER","ETHIC","ETHOS",
+      "EVADE","EVENT","EVERY","EVICT","EVOKE","EXACT","EXALT","EXCEL","EXERT","EXILE",
+      "EXIST","EXPAT","EXPEL","EXTRA","EXUDE","EXULT","EYING","FABLE","FACED","FACET",
+      "FACTS","FADDY","FADED","FAILS","FAINT","FAIRY","FAITH","FAKER","FALLS","FALSE",
+      "FAMED","FANCY","FANGS","FARCE","FARMS","FATAL","FATTY","FAULT","FAUNA","FEAST",
+      "FEATS","FEEDS","FEIGN","FEINT","FELLA","FELON","FEMUR","FENCE","FERAL","FERRY",
+      "FETAL","FETCH","FETID","FETUS","FEVER","FEWER","FIBER","FIBRE","FIELD","FIEND",
+      "FIERY","FIFTH","FIFTY","FIGHT","FILCH","FILET","FILLS","FILLY","FILMS","FILMY",
+      "FILTH","FINAL","FINCH","FINDS","FINED","FINER","FIRST","FISHY","FISTS","FITLY",
+      "FIVER","FIXED","FIXER","FIXES","FJORD","FLACK","FLAGS","FLAIR","FLAKE","FLAKY",
+      "FLAME","FLANK","FLAPS","FLARE","FLASH","FLASK","FLATS","FLAXY","FLEAS","FLECK",
+      "FLESH","FLICK","FLIER","FLIES","FLING","FLINT","FLOAT","FLOCK","FLOOD","FLOOR",
+      "FLORA","FLOSS","FLOUR","FLOUT","FLOWN","FLOWS","FLUBS","FLUFF","FLUID","FLUKE",
+      "FLUKY","FLUNG","FLUNK","FLUSH","FLUTE","FOAMY","FOCAL","FOCUS","FOGGY","FOILS",
+      "FOLDS","FOLKS","FOLLY","FONTS","FOODS","FORAY","FORCE","FORGE","FORGO","FORMS",
+      "FORTE","FORTH","FORTY","FORUM","FOSSIL","FOUND","FOUNT","FOYER","FRAIL","FRAME",
+      "FRANK","FRAUD","FREAK","FREED","FRESH","FRIAR","FRIED","FRIES","FRILL","FRISK",
+      "FRIZZ","FROCK","FROGS","FROND","FRONT","FROST","FROTH","FROWN","FROZE","FRUIT",
+      "FRUMP","FUDGE","FUELS","FUGUE","FULLY","FUMED","FUMES","FUNDS","FUNGI","FUNKY",
+      "FUNNY","FURRY","FUSED","FUSES","FUSSY","FUSTY","FUTILE","FUZZY","GAFFE","GAILY",
+      "GAMER","GAMES","GAMMA","GAMUT","GAPED","GASES","GAUGE","GAUNT","GAUZE","GAUZY",
+      "GAVEL","GAWKY","GAZED","GEEKS","GEEKY","GEESE","GENES","GENIE","GENRE","GENUS",
+      "GERMS","GETUP","GHOST","GIANT","GIDDY","GIFTS","GILLS","GIRTH","GIVEN","GIVER",
+      "GIZMO","GLADE","GLAND","GLARE","GLASS","GLAZE","GLEAM","GLEAN","GLIDE","GLINT",
+      "GLOBE","GLOOM","GLORY","GLOSS","GLOVE","GLUED","GLYPH","GNARLY","GNASH","GNOME",
+      "GOADS","GOALS","GOATS","GODLY","GOING","GOLLY","GONER","GONNA","GOODS","GOOEY",
+      "GOOFY","GOOSE","GORGE","GORY","GOUGE","GOURD","GRACE","GRADE","GRAFT","GRAIL",
+      "GRAIN","GRAND","GRANT","GRAPE","GRAPH","GRASP","GRASS","GRATE","GRAVE","GRAVY",
+      "GRAZE","GREAT","GREED","GREEK","GREEN","GREET","GRIEF","GRILL","GRIME","GRIMY",
+      "GRIND","GRINS","GRIPE","GRITS","GROAN","GROIN","GROOM","GROPE","GROSS","GROUP",
+      "GROUT","GROVE","GROWL","GROWN","GRUEL","GRUFF","GRUMP","GRUNT","GUARD","GUAVA",
+      "GUESS","GUEST","GUIDE","GUILD","GUILT","GUISE","GULCH","GULLS","GUMMY","GUNKY",
+      "GUPPY","GUSTO","GUSTY","GUTTER","HABIT","HAIKU","HAIRS","HAIRY","HALAL","HALLS",
+      "HALVE","HANDS","HANDY","HANGS","HAPPY","HARDY","HAREM","HARKS","HARMS","HARPS",
+      "HARSH","HASTY","HATCH","HATED","HATER","HATES","HAUNT","HAVEN","HAVOC","HAWKS",
+      "HAZEL","HEADS","HEADY","HEALS","HEARD","HEART","HEATH","HEAVE","HEAVY","HEDGE",
+      "HEELS","HEFTY","HEIST","HELIX","HELLO","HELPS","HENCE","HERBS","HERDS","HERON",
+      "HERTZ","HIDES","HIGHS","HIKED","HIKER","HIKES","HILLS","HILLY","HILTS","HINDS",
+      "HINGE","HINTS","HIPPO","HIPPY","HIRED","HITCH","HOARD","HOARY","HOBBY","HOIST",
+      "HOLDS","HOLES","HOLLY","HOMER","HOMES","HONEY","HONKS","HONOR","HOODS","HOOFS",
+      "HOOKS","HOOPS","HOPED","HOPER","HOPES","HORDE","HORNS","HORSE","HOSED","HOSTS",
+      "HOTEL","HOTLY","HOUND","HOURS","HOUSE","HOVEL","HOVER","HOWDY","HOWLS","HUBBY",
+      "HUFFS","HUFFY","HULKS","HUMAN","HUMID","HUMPS","HUMUS","HUNCH","HUNKS","HUNTS",
+      "HURRY","HURTS","HUSKY","HUTCH","HYDRA","HYENA","HYMEN","HYPED","HYPER","ICIER",
+      "ICILY","ICING","IDEAL","IDEAS","IDIOM","IDIOT","IDLER","IDYLL","IGLOO","ILIAC",
+      "IMAGE","IMBUE","IMPEL","IMPLY","INBOX","INCUR","INDEX","INDIE","INEPT","INERT",
+      "INFER","INFRA","INGOT","INNER","INPUT","INTER","INTRO","IONIC","IRATE","IRKED",
+      "IRONY","ISSUE","ITCHY","ITEMS","IVORY","JAPAN","JAUNT","JAZZY","JEANS","JELLY",
+      "JERKS","JERKY","JESUS","JEWEL","JIFFY","JIMMY","JINKS","JIVED","JOINS","JOINT",
+      "JOKER","JOKES","JOLLY","JOLTS","JOUST","JOYED","JUDGE","JUICE","JUICY","JUMBO",
+      "JUMPS","JUMPY","JUNCO","JUNKY","JUROR","KANDY","KARMA","KAYAK","KEBAB","KEELS",
+      "KEEPS","KELPS","KEMPT","KEYED","KHAKI","KICKS","KIDDY","KILLS","KILNS","KINDS",
+      "KINGS","KINKS","KINKY","KIOSK","KITTY","KNACK","KNAVE","KNEAD","KNEED","KNEEL",
+      "KNEES","KNELT","KNIFE","KNITS","KNOBS","KNOCK","KNOLL","KNOTS","KNOWN","KNOWS",
+      "KOALA","KUDOS","LABEL","LABOR","LACED","LACKS","LADEN","LADLE","LAGER","LAIRD",
+      "LAKES","LAMBS","LAMPS","LANCE","LANDS","LANES","LANKY","LAPEL","LAPSE","LARGE",
+      "LARKS","LARVA","LASER","LASSO","LASTS","LATCH","LATER","LATEX","LATHE","LATIN",
+      "LAUGH","LAVAS","LAWNS","LAYER","LEADS","LEAFY","LEAKS","LEAKY","LEANT","LEAPS",
+      "LEAPT","LEARN","LEASE","LEASH","LEAST","LEAVE","LEDGE","LEECH","LEEKS","LEERS",
+      "LEFTS","LEFTY","LEGAL","LEMON","LEMUR","LENDS","LEVEL","LEVER","LIAR","LIBEL",
+      "LIFTS","LIGHT","LIKED","LIKEN","LIKES","LILAC","LIMBO","LIMBS","LIMIT","LIMPS",
+      "LINED","LINEN","LINER","LINES","LINKS","LIONS","LIPID","LISTS","LITER","LITHE",
+      "LITRE","LIVED","LIVEN","LIVER","LIVES","LIVID","LLAMA","LOADS","LOAFS","LOAMY",
+      "LOANS","LOBBY","LOCAL","LOCKS","LOCUS","LODGE","LOFTS","LOFTY","LOGIC","LOINS",
+      "LONER","LONGS","LOOKS","LOOMS","LOONY","LOOPS","LOOPY","LOOSE","LOOTS","LORDS",
+      "LORRY","LOSER","LOSES","LOSSY","LOTUS","LOUSE","LOUSY","LOUTS","LOVED","LOVER",
+      "LOVES","LOWER","LOWLY","LOYAL","LUCID","LUCKY","LUMEN","LUMPS","LUMPY","LUNAR",
+      "LUNCH","LUNGS","LURCH","LURED","LURID","LURKS","LUSTY","LYING","LYMPH","LYNCH",
+      "LYRIC","MACHO","MACRO","MADAM","MADLY","MAFIA","MAGIC","MAGMA","MAIDS","MAILS",
+      "MAIMS","MAIZE","MAJOR","MAKER","MAKES","MALES","MALTS","MAMMA","MAMMY","MANGO",
+      "MANIA","MANIC","MANOR","MAPLE","MARCH","MARES","MARKS","MARRY","MARSH","MASKS",
+      "MASON","MASSE","MASTS","MATCH","MATED","MATES","MATHS","MATTE","MAUVE","MAXIM",
+      "MAYOR","MAZES","MEALS","MEALY","MEANS","MEANT","MEATS","MEATY","MEDAL","MEDIA",
+      "MEDIC","MELEE","MELON","MELTS","MEMOS","MENUS","MERCY","MERGE","MERIT","MERRY",
+      "MESSY","METAL","METER","METRE","METRO","MICRO","MIDST","MIGHT","MIKED","MILES",
+      "MILKS","MILKY","MILLS","MIMIC","MINCE","MINDS","MINED","MINER","MINES","MINOR",
+      "MINTY","MINUS","MIRTH","MISER","MISTY","MITES","MIXED","MIXER","MIXES","MOANS",
+      "MOATS","MOCHA","MOCKS","MODEL","MODEM","MODES","MOIST","MOLAR","MOLDS","MOLDY",
+      "MOLES","MOLLY","MOMMY","MONEY","MONKS","MONTH","MOODS","MOODY","MOOSE","MOPED",
+      "MOPES","MORAL","MORON","MORPH","MORSE","MOSSY","MOTEL","MOTIF","MOTOR","MOTTO",
+      "MOULD","MOULT","MOUND","MOUNT","MOURN","MOUSE","MOUSY","MOUTH","MOVED","MOVER",
+      "MOVES","MOVIE","MOWER","MOWED","MUCUS","MUDDY","MUFFS","MULCH","MULES","MUMMY",
+      "MUMPS","MUNCH","MURAL","MURKY","MUSHY","MUSIC","MUSKY","MUSTY","MUTED","MYRRH",
+      "MYTHS","NACHO","NADIR","NAIVE","NAKED","NAMED","NAMER","NAMES","NANNY","NASAL",
+      "NASTY","NATAL","NAVAL","NAVEL","NEEDY","NEIGH","NEONS","NERDS","NERDY","NERVE",
+      "NERVY","NEVER","NEWER","NEWLY","NEXUS","NICER","NICHE","NICKS","NIECE","NIGHT",
+      "NIMBY","NINJA","NINTH","NIPPY","NITTY","NOBLE","NOBLY","NODDY","NODES","NOISE",
+      "NOISY","NOMAD","NONCE","NOOKS","NOOSE","NORTH","NOSED","NOSEY","NOTCH","NOTED",
+      "NOTES","NOVEL","NUDGE","NULLS","NURDS","NURSE","NUTTY","NYLON","NYMPH","OAKEN",
+      "OAKUM","OASES","OASIS","OCCUR","OCEAN","OCTET","OCULI","ODDLY","OFFAL","OFFER",
+      "OFTEN","OGLED","OGLES","OILER","OLDIE","OLIVE","OMEGA","ONION","ONSET","OPERA",
+      "OPIUM","OPTED","OPTIC","ORBIT","ORDER","ORGAN","OUNCE","OUTDO","OUTER","OUTGO",
+      "OUTTA","OUZOS","OVARY","OVATE","OVENS","OVERT","OWING","OWNED","OWNER","OXIDE",
+      "OZONE","PACED","PACER","PACES","PACKS","PADDY","PAGED","PAGER","PAGES","PAINS",
+      "PAINT","PAIRS","PALMS","PALSY","PANDA","PANEL","PANGS","PANIC","PANSY","PANTS",
+      "PAPAL","PAPAS","PAPER","PARKA","PARKS","PARSE","PARTS","PARTY","PASTA","PASTE",
+      "PASTY","PATCH","PATIO","PATSY","PATTY","PAUSE","PAVED","PAVES","PAWED","PAWNS",
+      "PEACE","PEACH","PEAKS","PEARL","PEARS","PEASE","PEATS","PECAN","PECKS","PEDAL",
+      "PEEKS","PEELS","PEEPS","PEERS","PENAL","PENCE","PENNY","PERCH","PERIL","PERKS",
+      "PERKY","PERMS","PERRY","PESKY","PESTS","PETAL","PETTY","PHASE","PHONE","PHONY",
+      "PHOTO","PIANO","PICKS","PICKY","PIECE","PIETY","PIGGY","PIKES","PILED","PILES",
+      "PILLS","PILOT","PIMPS","PINCH","PINED","PINES","PINGS","PINKO","PINKS","PINKY",
+      "PINTS","PIOUS","PIPED","PIPER","PIPES","PITCH","PITHY","PITON","PITTA","PIVOT",
+      "PIXEL","PIXIE","PIZZA","PLACE","PLAID","PLAIN","PLAIT","PLANE","PLANK","PLANS",
+      "PLANT","PLATE","PLAZA","PLEAD","PLEAS","PLEAT","PLIED","PLIER","PLIES","PLODS",
+      "PLONK","PLOPS","PLOTS","PLUCK","PLUGS","PLUMB","PLUME","PLUMP","PLUMS","PLUND",
+      "PLUNK","PLUSH","PLUTO","POACH","POCKS","PODGY","POEMS","POETS","POINT","POISE",
+      "POKED","POKER","POKES","POKEY","POLAR","POLED","POLES","POLKA","POLLS","POLYP",
+      "PONDS","POOCH","POOFS","POOLS","POOPS","POPES","POPPY","PORCH","PORED","PORES",
+      "PORKY","PORTS","POSED","POSER","POSES","POSIT","POSSE","POSTS","POTTY","POUCH",
+      "POUND","POURS","POWER","PRANK","PRAWN","PRAYS","PREEN","PRESS","PREYS","PRICE",
+      "PRICK","PRIDE","PRIED","PRIES","PRIME","PRINT","PRIOR","PRISM","PRIVY","PRIZE",
+      "PROBE","PRODS","PROMO","PROMS","PRONE","PRONG","PROOF","PROPS","PROSE","PROUD",
+      "PROVE","PROWL","PRUDE","PRUNE","PSALM","PUBIC","PUDGY","PUFFS","PUFFY","PULLS",
+      "PULPS","PULPY","PULSE","PUMPS","PUNCH","PUNKS","PUNNY","PUPIL","PUPPY","PUREE",
+      "PURGE","PURSE","PUSHY","PUTTS","PYGMY","QUACK","QUAFF","QUAKE","QUALM","QUART",
+      "QUASI","QUEEN","QUEER","QUELL","QUERY","QUEST","QUEUE","QUICK","QUIET","QUILL",
+      "QUILT","QUIRK","QUITE","QUOTA","QUOTE","RABBI","RABID","RACED","RACER","RACES",
+      "RACKS","RADAR","RADII","RADIO","RADON","RAFTS","RAGED","RAGES","RAIDS","RAILS",
+      "RAINS","RAINY","RAISE","RAKED","RAKER","RAKES","RALLY","RAMPS","RANCH","RANGE",
+      "RANKS","RAPID","RARER","RASPS","RASPY","RATED","RATES","RATIO","RATTY","RAVED",
+      "RAVEN","RAVES","RAWER","RAZOR","REACH","REACT","READS","READY","REALM","REAMS",
+      "REAPS","REARM","REARS","REBEL","REBUT","RECAP","RECUR","REEDS","REEDY","REEFS",
+      "REEKS","REELS","REFER","REFRY","REGAL","REIGN","REINS","RELAX","RELAY","RELIC",
+      "REMIT","REMIX","RENAL","RENDS","RENEW","RENTS","REPAY","REPEL","REPLY","RERUN",
+      "RESIN","RESTS","RETRY","RETRO","REUSE","REVEL","REVUE","RHINO","RHYME","RIDGE",
+      "RIFLE","RIFTS","RIGHT","RIGID","RIGOR","RINDS","RINGS","RINKS","RINSE","RIOTS",
+      "RIPEN","RIPER","RISEN","RISER","RISES","RISKS","RISKY","RITES","RITZY","RIVAL",
+      "RIVER","RIVET","ROACH","ROADS","ROAMS","ROARS","ROAST","ROBED","ROBES","ROBIN",
+      "ROBOT","ROCKS","ROCKY","ROGUE","ROLES","ROLLS","ROMAN","ROMPS","ROOFS","ROOKS",
+      "ROOMS","ROOMY","ROOST","ROOTS","ROPED","ROPES","ROSES","ROSIN","ROTOR","ROUGE",
+      "ROUGH","ROUND","ROUSE","ROUTE","ROUTS","ROVER","ROWDY","ROWED","ROWER","ROYAL",
+      "RUCKS","RUDDY","RUDER","RUGBY","RUINS","RULED","RULER","RULES","RUMBA","RUMEN",
+      "RUMOR","RUMPS","RUNGS","RUPEE","RURAL","RUSTS","RUSTY","SADLY","SAFER","SAFES",
+      "SAGAS","SAGES","SAINT","SALAD","SALES","SALON","SALSA","SALTS","SALTY","SALVE",
+      "SAMBA","SANDS","SANDY","SANER","SAPPY","SASSY","SATAN","SATED","SATIN","SATYR",
+      "SAUCE","SAUCY","SAUNA","SAVED","SAVER","SAVES","SAVVY","SAWED","SCALD","SCALE",
+      "SCALP","SCALY","SCAMP","SCAMS","SCANS","SCARE","SCARF","SCARY","SCENE","SCENT",
+      "SCHMO","SCOFF","SCOLD","SCONE","SCOOP","SCOOT","SCOPE","SCORN","SCOUR","SCOUT",
+      "SCOWL","SCRAM","SCRAP","SCREE","SCREW","SCRIM","SCRUB","SEALS","SEAMS","SEARS",
+      "SEATS","SECTS","SEDAN","SEEDS","SEEDY","SEEKS","SEEMS","SEEPS","SEIZE","SELLS",
+      "SEMIS","SENDS","SENSE","SEPAL","SEPIA","SEPOY","SEPTA","SERUM","SERVE","SETUP",
+      "SEVEN","SEVER","SEWED","SEWER","SEXES","SHACK","SHADE","SHADY","SHAFT","SHAKE",
+      "SHAKY","SHALL","SHAME","SHANK","SHAPE","SHARD","SHARE","SHARK","SHARP","SHAVE",
+      "SHAWL","SHEAF","SHEAR","SHEDS","SHEEN","SHEEP","SHEER","SHEET","SHELF","SHELL",
+      "SHIFT","SHINE","SHINS","SHINY","SHIPS","SHIRK","SHIRT","SHOCK","SHONE","SHOOK",
+      "SHOOT","SHOPS","SHORE","SHORN","SHORT","SHOTS","SHOUT","SHOVE","SHOWN","SHOWS",
+      "SHOWY","SHRED","SHREW","SHRUB","SHRUG","SHUCK","SHUNS","SHUNT","SHUSH","SIGHT",
+      "SIGMA","SIGNS","SILKS","SILKY","SILLY","SILTS","SINCE","SINEW","SINGE","SINGS",
+      "SINKS","SINUS","SIREN","SISSY","SITES","SIXTH","SIXTY","SIZED","SIZES","SKATE",
+      "SKEET","SKEIN","SKIDS","SKIER","SKIES","SKILL","SKIMP","SKIMS","SKINS","SKIPS",
+      "SKIRT","SKITS","SKULK","SKULL","SKUNK","SLABS","SLACK","SLAIN","SLAKE","SLAMS",
+      "SLANG","SLANT","SLAPS","SLASH","SLATS","SLATE","SLAVE","SLAYS","SLEDS","SLEEK",
+      "SLEEP","SLEET","SLEPT","SLICE","SLICK","SLIDE","SLIME","SLIMY","SLING","SLINK",
+      "SLIPS","SLITS","SLOBS","SLOGS","SLOPE","SLOPS","SLOSH","SLOTH","SLOTS","SLOWS",
+      "SLUBS","SLUGS","SLUMS","SLUNK","SLURP","SLURS","SLUSH","SLYLY","SMACK","SMALL",
+      "SMART","SMASH","SMEAR","SMELL","SMELT","SMILE","SMIRK","SMITE","SMITH","SMOCK",
+      "SMOKE","SMOKY","SNACK","SNAGS","SNAIL","SNAKE","SNAPS","SNARE","SNARL","SNEAK",
+      "SNEER","SNIDE","SNIFF","SNIPS","SNITS","SNOBS","SNOOP","SNORE","SNORT","SNOUT",
+      "SNOWY","SNUBS","SNUFF","SNUGS","SOAKS","SOAPS","SOAPY","SOARS","SOBER","SOCKS",
+      "SOFAS","SOGGY","SOILS","SOLAR","SOLES","SOLID","SOLOS","SOLVE","SONAR","SONGS",
+      "SONIC","SONNY","SOOTHE","SOOTY","SOPPY","SORRY","SORTS","SOUGH","SOULS","SOUND",
+      "SOUPS","SOUPY","SOURS","SOUTH","SOWED","SOWER","SPACE","SPADE","SPAIN","SPANK",
+      "SPANS","SPARE","SPARK","SPARS","SPASM","SPATS","SPAWN","SPEAK","SPEAR","SPECK",
+      "SPECS","SPEED","SPELL","SPEND","SPENT","SPERM","SPICE","SPICY","SPIED","SPIEL",
+      "SPIES","SPIKE","SPIKY","SPILL","SPILT","SPINE","SPINY","SPIRE","SPITE","SPLIT",
+      "SPOIL","SPOKE","SPOOF","SPOOK","SPOOL","SPOON","SPORE","SPORT","SPOTS","SPOUT",
+      "SPRAY","SPREE","SPRIG","SPRY","SPUNK","SPURN","SPURS","SPURT","SQUAD","SQUAT",
+      "SQUIB","SQUID","STACK","STAFF","STAGE","STAIN","STAIR","STAKE","STALE","STALK",
+      "STALL","STAMP","STAND","STANK","STAPH","STARE","STARK","STARS","START","STASH",
+      "STATE","STATS","STAVE","STAYS","STEAD","STEAK","STEAL","STEAM","STEED","STEEL",
+      "STEEP","STEER","STEMS","STENO","STEPS","STERN","STEWS","STICK","STIFF","STILL",
+      "STILT","STING","STINK","STINT","STIRS","STOCK","STOIC","STOKE","STOLE","STOMP",
+      "STONE","STONY","STOOD","STOOL","STOOP","STOPS","STORE","STORK","STORM","STORY",
+      "STOUT","STOVE","STOWS","STRAP","STRAW","STRAY","STRIP","STRUT","STUCK","STUDS",
+      "STUDY","STUFF","STUMP","STUNG","STUNK","STUNS","STUNT","STYLE","SUAVE","SUCKS",
+      "SUGAR","SUITE","SUITS","SULKS","SULKY","SULLY","SUMAC","SUNNY","SUPER","SURGE",
+      "SURLY","SUSHI","SWABS","SWAMP","SWANK","SWANS","SWAPS","SWARM","SWATH","SWAYS",
+      "SWEAR","SWEAT","SWEEP","SWEET","SWELL","SWEPT","SWIFT","SWILL","SWIMS","SWINE",
+      "SWING","SWIPE","SWIRL","SWISS","SWOOP","SWORD","SWORE","SWORN","SWUNG","SYNOD",
+      "SYRUP","TABLE","TABOO","TACIT","TACKS","TACKY","TACOS","TAINT","TAKEN","TAKER",
+      "TAKES","TALES","TALKS","TALLY","TALON","TAMED","TAMER","TANGO","TANGS","TANGY",
+      "TANKS","TAPER","TAPES","TARDY","TARPS","TARRY","TARTS","TASKS","TASTE","TASTY",
+      "TATTY","TAUNT","TAWNY","TAXED","TAXES","TAXIS","TEACH","TEAKS","TEAMS","TEARS",
+      "TEARY","TEASE","TEATS","TEENS","TEENY","TEETH","TELLS","TEMPO","TEMPS","TENDS",
+      "TENOR","TENSE","TENTH","TENTS","TEPEE","TEPID","TERMS","TERNS","TERRA","TERSE",
+      "TESTS","TESTS","TESTY","TEXTS","THANK","THEFT","THEIR","THEME","THEMS","THENCE",
+      "THERE","THESE","THICK","THIEF","THIGH","THING","THINK","THIRD","THONG","THORN",
+      "THOSE","THREE","THREW","THROB","THROW","THRUM","THUDS","THUGS","THUMB","THUMP",
+      "THYME","TIARA","TIDAL","TIDED","TIDES","TIERS","TIGER","TIGHT","TILDE","TILED",
+      "TILES","TILTS","TIMED","TIMER","TIMES","TIMID","TINNY","TINTS","TIPSY","TIRED",
+      "TITAN","TITLE","TOADS","TOAST","TODAY","TODDY","TOFFS","TOKEN","TOLLS","TOMBS",
+      "TOMES","TONAL","TONED","TONER","TONES","TONGS","TONIC","TONNE","TOOLS","TOOTH",
+      "TOOTS","TOPIC","TORCH","TORSO","TOTAL","TOTEM","TOUCH","TOUGH","TOURS","TOWEL",
+      "TOWER","TOWNS","TOXIC","TOXIN","TRACE","TRACK","TRACT","TRADE","TRAIL","TRAIN",
+      "TRAIT","TRAMP","TRAMS","TRANS","TRAPS","TRASH","TRAWL","TRAYS","TREAD","TREAT",
+      "TREES","TREND","TRESS","TRIAD","TRIAL","TRIBE","TRICK","TRIED","TRIER","TRIES",
+      "TRIKE","TRILL","TRIMS","TRIOS","TRIPS","TRITE","TROLL","TROMP","TROOP","TROPE",
+      "TROTH","TROTS","TROUT","TRUCE","TRUCK","TRULY","TRUMP","TRUNK","TRUSS","TRUST",
+      "TRUTH","TRYST","TUBAL","TUBBY","TUBES","TUCKS","TUFTS","TULIP","TUMMY","TUMOR",
+      "TUNED","TUNER","TUNES","TUNIC","TURBO","TURFS","TURNS","TUTOR","TUTTI","TUTUS",
+      "TWAIN","TWANG","TWEAK","TWEED","TWEET","TWICE","TWIGS","TWILL","TWINE","TWINS",
+      "TWIRL","TWIST","TYING","TYKES","TYPED","TYPES","UDDER","ULCER","ULTRA","UMBRA",
+      "UNCLE","UNDER","UNDID","UNDUE","UNFED","UNFIT","UNIFY","UNION","UNITE","UNITS",
+      "UNITY","UNLIT","UNSAY","UNSET","UNTIE","UNTIL","UNWED","UNWET","UPPER","UPSET",
+      "URBAN","URGED","URGES","URINE","USAGE","USHER","USING","USUAL","UTTER","VAGUE",
+      "VALET","VALID","VALOR","VALUE","VALVE","VAMPS","VANED","VANES","VAPID","VAPOR",
+      "VAULT","VAUNT","VEERS","VEGAN","VEINS","VEINY","VENAL","VENDS","VENOM","VENUE",
+      "VERBS","VERGE","VERSE","VESTS","VEXED","VEXES","VIDEO","VIEWS","VIGIL","VIGOR",
+      "VILLA","VINCA","VINES","VINYL","VIOLA","VIPER","VIRAL","VIREO","VIRUS","VISAL",
+      "VISOR","VISTA","VITAL","VIVID","VIXEN","VOCAB","VOCAL","VODKA","VOGUE","VOICE",
+      "VOIDS","VOILA","VOILE","VOLTS","VOMIT","VOTED","VOTER","VOTES","VOUCH","VOWED",
+      "VOWEL","VULVA","WACKO","WACKY","WADED","WADER","WADES","WAFER","WAFTS","WAGED",
+      "WAGER","WAGES","WAGON","WAIFS","WAILS","WAIST","WAITS","WAIVE","WAKED","WAKEN",
+      "WAKES","WALKS","WALLS","WALTZ","WANDS","WANTS","WARDS","WARES","WARNS","WARPS",
+      "WARTS","WARTY","WASHY","WASPS","WASTE","WATCH","WATER","WATTS","WAVED","WAVER",
+      "WAVES","WAXED","WAXEN","WAXES","WAYS","WEALS","WEARY","WEAVE","WEDGE","WEEDS",
+      "WEEDY","WEEKS","WEENS","WEIGH","WEIRD","WELLS","WELSH","WELTS","WENDS","WHACK",
+      "WHALE","WHARF","WHEAT","WHEEL","WHELK","WHELP","WHERE","WHICH","WHIFF","WHILE",
+      "WHIMS","WHINE","WHINY","WHIPS","WHIRL","WHISK","WHITE","WHOLE","WHOOP","WHOSE",
+      "WICKS","WIDEN","WIDER","WIDES","WIDOW","WIDTH","WIELD","WIFED","WIFES","WIFEY",
+      "WILDS","WILED","WILES","WILLS","WILLY","WILTS","WIMPS","WIMPY","WINCE","WINCH",
+      "WINDS","WINDY","WINED","WINES","WINGS","WINKS","WIPED","WIPER","WIPES","WIRED",
+      "WIRER","WIRES","WISED","WISER","WISPS","WISPY","WITCH","WITTY","WIVES","WIZEN",
+      "WOKEN","WOMAN","WOMEN","WONKY","WOODS","WOODY","WOOED","WOOER","WOOZY","WORDS",
+      "WORDY","WORKS","WORLD","WORMS","WORMY","WORRY","WORSE","WORST","WORTH","WOULD",
+      "WOUND","WOVEN","WOWED","WRACK","WRAPS","WRATH","WREAK","WRECK","WREST","WRING",
+      "WRIST","WRITE","WRONG","WROTE","WRUNG","XEROX","YAHOO","YARDS","YARNS","YAWNS",
+      "YEARN","YEARS","YEAST","YELLS","YIELD","YODEL","YOKEL","YOLKS","YOUNG","YOURS",
+      "YOUTH","YOWLS","YUCCA","YUCKY","YUKKY","YUMMY","ZEBRA","ZEROS","ZESTY","ZILCH",
+      "ZINCS","ZINGY","ZIPPY","ZONAL","ZONED","ZONES","ZOOMS"
+    ];
+
+    const WORD_LENGTH = 5;
+    const MAX_GUESSES = 6;
+
+    let secretWord = "";
+    let currentRow = 0;
+    let currentCol = 0;
+    let isGameOver = false;
+
+    const boardEl = document.getElementById("board");
+    const messageEl = document.getElementById("message");
+    const keyboardEl = document.getElementById("keyboard");
+    const newGameBtn = document.getElementById("new-game");
+
+    function pickSecretWord() {
+      const idx = Math.floor(Math.random() * WORD_LIST.length);
+      return WORD_LIST[idx];
+    }
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      for (let row = 0; row < MAX_GUESSES; row++) {
+        for (let col = 0; col < WORD_LENGTH; col++) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          tile.dataset.row = row;
+          tile.dataset.col = col;
+          boardEl.appendChild(tile);
+        }
+      }
+    }
+
+    function createKeyboard() {
+      keyboardEl.innerHTML = "";
+      const rows = [
+        "QWERTYUIOP",
+        "ASDFGHJKL",
+        "ZXCVBNM"
+      ];
+
+      // First row
+      for (const ch of rows[0]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      // Second row (offset by one empty cell for spacing)
+      const spacer = document.createElement("div");
+      spacer.style.visibility = "hidden";
+      keyboardEl.appendChild(spacer);
+      for (const ch of rows[1]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      // Third row with ENTER and DELETE
+      const enterKey = makeKeyButton("ENTER");
+      enterKey.classList.add("large");
+      keyboardEl.appendChild(enterKey);
+
+      for (const ch of rows[2]) {
+        keyboardEl.appendChild(makeKeyButton(ch));
+      }
+
+      const delKey = makeKeyButton("DEL");
+      delKey.classList.add("large");
+      keyboardEl.appendChild(delKey);
+    }
+
+    function makeKeyButton(label) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key";
+      btn.textContent = label === "DEL" ? "⌫" : label;
+      btn.dataset.key = label;
+      btn.addEventListener("click", () => handleKey(label));
+      return btn;
+    }
+
+    function showMessage(text) {
+      messageEl.textContent = text;
+    }
+
+    function getTile(row, col) {
+      return boardEl.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function updateKeyboardColours(letterStatuses) {
+      // letterStatuses: map from letter to status ("correct", "present", "absent")
+      for (const [letter, status] of Object.entries(letterStatuses)) {
+        const keyBtn = keyboardEl.querySelector(`.key[data-key="${letter}"]`);
+        if (!keyBtn) continue;
+
+        // Upgrade logic: correct > present > absent
+        const current = keyBtn.dataset.status;
+        if (current === "correct") continue;
+        if (current === "present" && status === "absent") continue;
+
+        keyBtn.dataset.status = status;
+        keyBtn.classList.remove("correct", "present", "absent");
+        keyBtn.classList.add(status);
+      }
+    }
+
+    function handleKey(key) {
+      if (isGameOver) return;
+
+      if (key === "ENTER") {
+        submitGuess();
+      } else if (key === "DEL" || key === "Backspace") {
+        deleteLetter();
+      } else if (/^[A-Z]$/.test(key)) {
+        addLetter(key);
+      }
+    }
+
+    function addLetter(letter) {
+      if (currentCol >= WORD_LENGTH) return;
+      const tile = getTile(currentRow, currentCol);
+      tile.textContent = letter;
+      tile.classList.add("filled");
+      currentCol += 1;
+    }
+
+    function deleteLetter() {
+      if (currentCol === 0) return;
+      currentCol -= 1;
+      const tile = getTile(currentRow, currentCol);
+      tile.textContent = "";
+      tile.classList.remove("filled");
+    }
+
+    function submitGuess() {
+      if (currentCol < WORD_LENGTH) {
+        showMessage("Not enough letters");
+        return;
+      }
+
+      let guess = "";
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        guess += getTile(currentRow, col).textContent;
+      }
+      guess = guess.toUpperCase();
+
+      if (!WORD_LIST.includes(guess)) {
+        showMessage("Word not in list");
+        return;
+      }
+
+      const evaluation = evaluateGuess(guess, secretWord);
+      const letterStatuses = {};
+
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        const tile = getTile(currentRow, col);
+        const status = evaluation[col];
+        tile.classList.add(status, "flip");
+        const letter = guess[col];
+
+        const current = letterStatuses[letter];
+        if (current === "correct") {
+        } else if (current === "present" && status === "absent") {
+        } else {
+          letterStatuses[letter] = status;
+        }
+      }
+
+      updateKeyboardColours(letterStatuses);
+      showWordInfo(guess);
+
+      if (guess === secretWord) {
+        showMessage("Splendid! You've got it.");
+        isGameOver = true;
+        return;
+      }
+
+      currentRow += 1;
+      currentCol = 0;
+
+      if (currentRow >= MAX_GUESSES) {
+        showMessage(`Unlucky – the word was ${secretWord}`);
+        isGameOver = true;
+      } else {
+        showMessage("");
+      }
+    }
+
+    function evaluateGuess(guess, secret) {
+      const result = Array(WORD_LENGTH).fill("absent");
+      const secretLetters = secret.split("");
+      const guessLetters = guess.split("");
+
+      const letterCounts = {};
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        const s = secretLetters[i];
+        letterCounts[s] = (letterCounts[s] || 0) + 1;
+      }
+
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (guessLetters[i] === secretLetters[i]) {
+          result[i] = "correct";
+          letterCounts[guessLetters[i]] -= 1;
+        }
+      }
+
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (result[i] === "correct") continue;
+        const letter = guessLetters[i];
+        if (letterCounts[letter] > 0) {
+          result[i] = "present";
+          letterCounts[letter] -= 1;
+        }
+      }
+
+      return result;
+    }
+
+
+    // Word definitions data
+    let wordData = {};
+    
+    // Load word definitions asynchronously in the background
+    setTimeout(() => {
+      fetch('word-data/words5.json')
+        .then(r => r.json())
+        .then(data => { wordData = data; console.log('Loaded', Object.keys(data).length, 'word definitions'); })
+        .catch(e => console.log('Could not load word data:', e));
+    }, 0);
+
+    const wordInfoEl = document.getElementById("word-info");
+
+    function showWordInfo(word) {
+      const info = wordData[word];
+      if (!info) {
+        wordInfoEl.innerHTML = '';
+        return;
+      }
+      
+      let html = '<div class="word-title">' + word + '</div>';
+      if (info.d) {
+        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      }
+      if (info.e) {
+        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      }
+      wordInfoEl.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function resetGame() {
+      secretWord = pickSecretWord();
+      currentRow = 0;
+      currentCol = 0;
+      isGameOver = false;
+      createBoard();
+      createKeyboard();
+      showMessage("New game – good luck!");
+      wordInfoEl.innerHTML = '';
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      if (key === "Enter") {
+        handleKey("ENTER");
+      } else if (key === "Backspace" || key === "Delete") {
+        handleKey("Backspace");
+      } else {
+        const upper = key.toUpperCase();
+        if (/^[A-Z]$/.test(upper)) {
+          handleKey(upper);
+        }
+      }
+    });
+
+    newGameBtn.addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>

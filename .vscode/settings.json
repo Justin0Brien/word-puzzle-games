@@ -23,8 +23,5 @@
   
   // Allow Copilot agent mode to execute tasks
   "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 30,
-  
-  // MCP and tool settings if available
-  "chat.mcp.enabled": true
+"chat.agent.maxRequests": 30
 }
