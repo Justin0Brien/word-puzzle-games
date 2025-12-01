@@ -87,6 +87,7 @@
         <!-- Header -->
         <header class="bg-slate-900/80 p-4 border-b border-slate-700 flex flex-wrap justify-between items-center backdrop-blur-md sticky top-0 z-10 gap-3">
             <div class="flex items-center">
+                <a href="index.html" class="text-slate-400 hover:text-white transition-colors mr-3" title="Back to games (H)">🏠</a>
                 <h1 class="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 select-none cursor-pointer" onclick="app.init()">
                     <i class="fa-solid fa-layer-group text-blue-500 mr-2"></i>MISSING VOWELS
                 </h1>
@@ -608,6 +609,12 @@ class GameApp {
         // Global Keyboard Handler
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
+
+            // Global home shortcut
+            if (key === 'h' && document.activeElement !== this.els.subcategorySearch && document.activeElement !== this.els.input) {
+                window.location.href = 'index.html';
+                return;
+            }
 
             // Menu Screen Shortcuts
             if (this.currentScreen === 'menu') {

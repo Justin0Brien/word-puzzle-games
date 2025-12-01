@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhyme Time - Word Games</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --correct: #22c55e;
+            --correct-bg: rgba(34, 197, 94, 0.15);
+            --incorrect: #ef4444;
+            --incorrect-bg: rgba(239, 68, 68, 0.15);
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .game-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 700px;
+            width: 100%;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .home-link {
+            position: absolute;
+            left: 1rem;
+            top: 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 1.25rem;
+            transition: color 0.2s;
+        }
+
+        .home-link:hover {
+            color: var(--text);
+        }
+
+        .game-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .game-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .score-value {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .question-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .question-number {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .round-instruction {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+            border-radius: 0 8px 8px 0;
+            color: #fbbf24;
+            font-size: 0.9rem;
+        }
+
+        .round-instruction strong {
+            color: #fbbf24;
+        }
+
+        .clues-container {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .clue-group {
+            background: var(--bg);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .clue-label {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .clue-text {
+            color: var(--text);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text);
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .answer-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .answer-input.correct {
+            border-color: var(--correct);
+            background-color: var(--correct-bg);
+        }
+
+        .answer-input.incorrect {
+            border-color: var(--incorrect);
+            background-color: var(--incorrect-bg);
+        }
+
+        .answer-display {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 6px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .answer-display.show {
+            display: block;
+        }
+
+        .answer-display strong {
+            color: var(--accent);
+        }
+
+        .rhyme-indicator {
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 1rem;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .rhyme-indicator.show {
+            display: block;
+        }
+
+        .rhyme-indicator.correct {
+            background: var(--correct-bg);
+            color: var(--correct);
+            border: 1px solid var(--correct);
+        }
+
+        .rhyme-indicator.incorrect {
+            background: var(--incorrect-bg);
+            color: var(--incorrect);
+            border: 1px solid var(--incorrect);
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--card-hover);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-warning {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-warning:hover {
+            background: var(--card-hover);
+            color: var(--text);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+        }
+
+        .keyboard-hints {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        .keyboard-hints span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .key-hint {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .feedback-message {
+            text-align: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            display: none;
+        }
+
+        .feedback-message.show {
+            display: block;
+        }
+
+        .feedback-message.correct {
+            background: var(--correct-bg);
+            color: var(--correct);
+        }
+
+        .feedback-message.incorrect {
+            background: var(--incorrect-bg);
+            color: var(--incorrect);
+        }
+
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 1.25rem;
+            }
+
+            .game-title {
+                font-size: 1.75rem;
+            }
+
+            .score-board {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
+        <h1 class="game-title">🎭 Rhyme Time</h1>
+        <p class="game-subtitle">Answer two clues with rhyming words</p>
+
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">Score</div>
+                <div class="score-value" id="score">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Attempted</div>
+                <div class="score-value" id="attempted">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Remaining</div>
+                <div class="score-value" id="remaining">10</div>
+            </div>
+        </div>
+
+        <div class="question-container">
+            <div class="question-number" id="questionNumber">Question 1 of 10</div>
+            
+            <div class="round-instruction">
+                <strong>💡 Hint:</strong> Your two answers must RHYME with each other!
+            </div>
+
+            <div class="clues-container">
+                <div class="clue-group">
+                    <div class="clue-label">Clue 1</div>
+                    <div class="clue-text" id="clue1">Loading...</div>
+                    <input type="text" class="answer-input" id="answer1" placeholder="Your answer..." autocomplete="off">
+                    <div class="answer-display" id="answerDisplay1">
+                        <strong>Correct answer:</strong> <span id="correctAnswer1"></span>
+                    </div>
+                </div>
+
+                <div class="clue-group">
+                    <div class="clue-label">Clue 2</div>
+                    <div class="clue-text" id="clue2">Loading...</div>
+                    <input type="text" class="answer-input" id="answer2" placeholder="Your answer..." autocomplete="off">
+                    <div class="answer-display" id="answerDisplay2">
+                        <strong>Correct answer:</strong> <span id="correctAnswer2"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rhyme-indicator" id="rhymeIndicator"></div>
+            <div class="feedback-message" id="feedbackMessage"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="checkBtn" onclick="checkAnswer()">Check Answer</button>
+            <button class="btn btn-secondary" id="showAnswerBtn" onclick="showAnswer()">Show Answer</button>
+            <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next Question</button>
+            <button class="btn btn-warning" onclick="resetGame()">Reset Game</button>
+        </div>
+
+        <div class="keyboard-hints">
+            <span><span class="key-hint">Enter</span> Check/Next</span>
+            <span><span class="key-hint">S</span> Show Answer</span>
+            <span><span class="key-hint">R</span> Reset</span>
+            <span><span class="key-hint">H</span> Home</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * QUESTION BANK
+         * 
+         * Each question object contains:
+         * - clue1: First clue text
+         * - answer1: Correct answer for first clue (will be checked case-insensitive)
+         * - clue2: Second clue text
+         * - answer2: Correct answer for second clue (will be checked case-insensitive)
+         * 
+         * IMPORTANT: answer1 and answer2 must rhyme!
+         * 
+         * To extend: Add more question objects to this array following the same structure.
+         */
+        const questionBank = [
+            {
+                clue1: "Capital city of France",
+                answer1: "Paris",
+                clue2: "Man's first name, short for Harold",
+                answer2: "Harris"
+            },
+            {
+                clue1: "Small door for a pet",
+                answer1: "Cat flap",
+                clue2: "Type of working-class headwear",
+                answer2: "Flat cap"
+            },
+            {
+                clue1: "Frozen rain",
+                answer1: "Hail",
+                clue2: "Container for water, often made of metal",
+                answer2: "Pail"
+            },
+            {
+                clue1: "Garden tool for digging",
+                answer1: "Spade",
+                clue2: "Mark given in school",
+                answer2: "Grade"
+            },
+            {
+                clue1: "Opposite of day",
+                answer1: "Night",
+                clue2: "Person in shining armor",
+                answer2: "Knight"
+            },
+            {
+                clue1: "Large body of water",
+                answer1: "Sea",
+                clue2: "Hot beverage",
+                answer2: "Tea"
+            },
+            {
+                clue1: "Timepiece worn on wrist",
+                answer1: "Watch",
+                clue2: "Part of the face; also, a cutting instrument",
+                answer2: "Notch"
+            },
+            {
+                clue1: "Indoor shopping center",
+                answer1: "Mall",
+                clue2: "Entrance area of a building",
+                answer2: "Hall"
+            },
+            {
+                clue1: "Baby dog",
+                answer1: "Pup",
+                clue2: "Drinking vessel",
+                answer2: "Cup"
+            },
+            {
+                clue1: "Red fruit often used in salads",
+                answer1: "Tomato",
+                clue2: "Vegetable often mashed or baked",
+                answer2: "Potato"
+            }
+        ];
+
+        // Game state variables
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let attempted = 0;
+        let answeredQuestions = new Set(); // Track which questions have been answered
+        let currentQuestionAnswered = false; // Track if current question has been checked
+
+        /**
+         * Initialize the game when the page loads
+         */
+        function initGame() {
+            displayQuestion();
+            updateScoreboard();
+        }
+
+        /**
+         * Display the current question
+         * Resets the input fields and shows the current clues
+         */
+        function displayQuestion() {
+            const question = questionBank[currentQuestionIndex];
+            
+            // Update question number
+            document.getElementById('questionNumber').textContent = 
+                `Question ${currentQuestionIndex + 1} of ${questionBank.length}`;
+            
+            // Display clues
+            document.getElementById('clue1').textContent = question.clue1;
+            document.getElementById('clue2').textContent = question.clue2;
+            
+            // Reset and clear inputs
+            const answer1Input = document.getElementById('answer1');
+            const answer2Input = document.getElementById('answer2');
+            answer1Input.value = '';
+            answer2Input.value = '';
+            answer1Input.className = 'answer-input';
+            answer2Input.className = 'answer-input';
+            answer1Input.disabled = false;
+            answer2Input.disabled = false;
+            
+            // Hide answer displays
+            document.getElementById('answerDisplay1').classList.remove('show');
+            document.getElementById('answerDisplay2').classList.remove('show');
+            
+            // Hide rhyme indicator and feedback
+            document.getElementById('rhymeIndicator').classList.remove('show');
+            document.getElementById('feedbackMessage').classList.remove('show');
+            
+            // Reset button states
+            document.getElementById('checkBtn').disabled = false;
+            document.getElementById('showAnswerBtn').disabled = false;
+            document.getElementById('nextBtn').disabled = true;
+            
+            // Reset current question state
+            currentQuestionAnswered = false;
+        }
+
+        /**
+         * Normalize a string for comparison (lowercase, trim whitespace)
+         */
+        function normalizeAnswer(answer) {
+            return answer.toLowerCase().trim();
+        }
+
+        /**
+         * Check if the user's answers are correct
+         * Marks the question as correct only if both answers match exactly
+         */
+        function checkAnswer() {
+            if (currentQuestionAnswered) return;
+            
+            const question = questionBank[currentQuestionIndex];
+            const userAnswer1 = document.getElementById('answer1').value;
+            const userAnswer2 = document.getElementById('answer2').value;
+            
+            // Check if both fields have input
+            if (!userAnswer1.trim() || !userAnswer2.trim()) {
+                alert('Please enter both answers before checking!');
+                return;
+            }
+            
+            // Normalize answers for comparison
+            const isAnswer1Correct = normalizeAnswer(userAnswer1) === normalizeAnswer(question.answer1);
+            const isAnswer2Correct = normalizeAnswer(userAnswer2) === normalizeAnswer(question.answer2);
+            const bothCorrect = isAnswer1Correct && isAnswer2Correct;
+            
+            // Update score only if this question hasn't been answered before
+            if (!answeredQuestions.has(currentQuestionIndex)) {
+                attempted++;
+                answeredQuestions.add(currentQuestionIndex);
+                if (bothCorrect) {
+                    score++;
+                }
+            }
+            
+            // Visual feedback on inputs
+            const answer1Input = document.getElementById('answer1');
+            const answer2Input = document.getElementById('answer2');
+            answer1Input.className = isAnswer1Correct ? 'answer-input correct' : 'answer-input incorrect';
+            answer2Input.className = isAnswer2Correct ? 'answer-input correct' : 'answer-input incorrect';
+            
+            // Show rhyme indicator
+            const rhymeIndicator = document.getElementById('rhymeIndicator');
+            rhymeIndicator.classList.add('show');
+            if (bothCorrect) {
+                rhymeIndicator.className = 'rhyme-indicator show correct';
+                rhymeIndicator.textContent = `✓ Perfect! "${question.answer1}" and "${question.answer2}" rhyme!`;
+            } else {
+                rhymeIndicator.className = 'rhyme-indicator show incorrect';
+                if (isAnswer1Correct && !isAnswer2Correct) {
+                    rhymeIndicator.textContent = '✗ First answer correct, but second answer is wrong';
+                } else if (!isAnswer1Correct && isAnswer2Correct) {
+                    rhymeIndicator.textContent = '✗ Second answer correct, but first answer is wrong';
+                } else {
+                    rhymeIndicator.textContent = '✗ Both answers are incorrect';
+                }
+            }
+            
+            // Show feedback message
+            const feedbackMessage = document.getElementById('feedbackMessage');
+            feedbackMessage.classList.add('show');
+            if (bothCorrect) {
+                feedbackMessage.className = 'feedback-message show correct';
+                feedbackMessage.textContent = '🎉 Correct! Both answers rhyme perfectly!';
+            } else {
+                feedbackMessage.className = 'feedback-message show incorrect';
+                feedbackMessage.textContent = '❌ Not quite right. Try again or show the answer.';
+            }
+            
+            // Update button states
+            document.getElementById('checkBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = false;
+            currentQuestionAnswered = true;
+            
+            // Disable inputs
+            answer1Input.disabled = true;
+            answer2Input.disabled = true;
+            
+            updateScoreboard();
+        }
+
+        /**
+         * Show the correct answers for the current question
+         * Reveals both answers and displays the rhyme
+         */
+        function showAnswer() {
+            const question = questionBank[currentQuestionIndex];
+            
+            // Mark as attempted if not already
+            if (!answeredQuestions.has(currentQuestionIndex)) {
+                attempted++;
+                answeredQuestions.add(currentQuestionIndex);
+                updateScoreboard();
+            }
+            
+            // Display correct answers
+            document.getElementById('correctAnswer1').textContent = question.answer1;
+            document.getElementById('correctAnswer2').textContent = question.answer2;
+            document.getElementById('answerDisplay1').classList.add('show');
+            document.getElementById('answerDisplay2').classList.add('show');
+            
+            // Show rhyme indicator
+            const rhymeIndicator = document.getElementById('rhymeIndicator');
+            rhymeIndicator.className = 'rhyme-indicator show correct';
+            rhymeIndicator.textContent = `"${question.answer1}" and "${question.answer2}" rhyme! 🎵`;
+            
+            // Update button states
+            document.getElementById('checkBtn').disabled = true;
+            document.getElementById('showAnswerBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = false;
+            
+            // Disable inputs
+            document.getElementById('answer1').disabled = true;
+            document.getElementById('answer2').disabled = true;
+            
+            currentQuestionAnswered = true;
+        }
+
+        /**
+         * Move to the next question
+         * Cycles back to the first question if at the end
+         */
+        function nextQuestion() {
+            currentQuestionIndex++;
+            
+            // Check if we've reached the end
+            if (currentQuestionIndex >= questionBank.length) {
+                // Show final score
+                const playAgain = confirm(
+                    `Game Complete!\n\nFinal Score: ${score} out of ${questionBank.length}\n` +
+                    `Questions Attempted: ${attempted}\n\n` +
+                    `Would you like to play again?`
+                );
+                
+                if (playAgain) {
+                    resetGame();
+                } else {
+                    currentQuestionIndex = questionBank.length - 1; // Stay on last question
+                }
+                return;
+            }
+            
+            displayQuestion();
+        }
+
+        /**
+         * Reset the game to initial state
+         * Clears score and returns to the first question
+         */
+        function resetGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            attempted = 0;
+            answeredQuestions.clear();
+            currentQuestionAnswered = false;
+            displayQuestion();
+            updateScoreboard();
+        }
+
+        /**
+         * Update the scoreboard display
+         * Shows current score, attempts, and remaining questions
+         */
+        function updateScoreboard() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('attempted').textContent = attempted;
+            document.getElementById('remaining').textContent = questionBank.length - attempted;
+        }
+
+        // Add Enter key support for inputs
+        document.getElementById('answer1').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('answer2').focus();
+            }
+        });
+
+        document.getElementById('answer2').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !document.getElementById('checkBtn').disabled) {
+                checkAnswer();
+            }
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            const key = e.key.toLowerCase();
+            const isInputFocused = document.activeElement.tagName === 'INPUT';
+            
+            // Don't trigger shortcuts when typing in input fields (except Enter)
+            if (isInputFocused && key !== 'enter') return;
+            
+            if (key === 'h') {
+                window.location.href = 'index.html';
+            } else if (key === 'r') {
+                resetGame();
+            } else if (key === 's' && !document.getElementById('showAnswerBtn').disabled) {
+                showAnswer();
+            } else if (key === 'enter') {
+                if (!document.getElementById('nextBtn').disabled) {
+                    nextQuestion();
+                } else if (!document.getElementById('checkBtn').disabled && !isInputFocused) {
+                    checkAnswer();
+                }
+            }
+        });
+
+        // Initialize game when page loads
+        window.onload = initGame;
+    </script>
+</body>
+</html>

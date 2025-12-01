@@ -22,6 +22,7 @@
 <body>
   <div class="game">
     <header>
+      <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
       <h1>Fourdle</h1>
       <small>Guess the four-letter British English word in six tries</small>
     </header>
@@ -31,6 +32,13 @@
       <div id="message" class="message" aria-live="polite"></div>
       <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
       <button id="new-game" type="button">New game</button>
+      <div class="keyboard-hints">
+        <span><span class="key-hint">Enter</span> Submit</span>
+        <span><span class="key-hint">⌫</span> Delete</span>
+        <span><span class="key-hint">N</span> New game*</span>
+        <span><span class="key-hint">H</span> Home*</span>
+        <span style="width:100%;text-align:center;font-size:0.6rem;">*after game ends</span>
+      </div>
       <div id="word-info" class="word-info" aria-live="polite"></div>
     </main>
   </div>
@@ -505,6 +513,10 @@
         handleKey("ENTER");
       } else if (key === "Backspace" || key === "Delete") {
         handleKey("Backspace");
+      } else if (key.toLowerCase() === "n" && isGameOver) {
+        resetGame();
+      } else if (key.toLowerCase() === "h" && isGameOver) {
+        window.location.href = "index.html";
       } else {
         const upper = key.toUpperCase();
         if (/^[A-Z]$/.test(upper)) {
