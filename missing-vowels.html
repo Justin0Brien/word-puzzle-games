@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Missing Vowels Challenge</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="activity-logger.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600;800&display=swap');
@@ -532,10 +533,15 @@ class GameApp {
         this.history = []; 
         this.wordsPlayed = 0;
         this.currentScreen = 'menu'; // menu, submenu, game, result
+        this.startedFromMenu = false; // Track if game started from main menu (Random)
         this.careerStats = {
             totalScore: 0,
             gamesPlayed: 0
         };
+        
+        // Activity logging
+        this.sessionId = null;
+        this.wordStartTime = null;
 
         // DOM Elements
         this.screens = {
@@ -640,7 +646,11 @@ class GameApp {
             else if (this.currentScreen === 'result') {
                 if (key === 'c') {
                     e.preventDefault();
-                    this.openSubmenu(this.currentDomain); 
+                    if (this.startedFromMenu) {
+                        this.init(); // Go back to main menu
+                    } else {
+                        this.openSubmenu(this.currentDomain); // Go back to submenu
+                    }
                 }
                 if (key === 'p') {            
                     e.preventDefault(); // Stop 'p' from being typed
@@ -670,9 +680,13 @@ class GameApp {
             }
         });
 
-        // Change Category Button (Goes back to submenu of current domain)
+        // Change Category Button (Goes back to where user came from)
         this.els.changeCatBtn.addEventListener('click', () => {
-            this.openSubmenu(this.currentDomain);
+            if (this.startedFromMenu) {
+                this.init(); // Go back to main menu
+            } else {
+                this.openSubmenu(this.currentDomain); // Go back to submenu
+            }
         });
     }
 
@@ -706,6 +720,7 @@ class GameApp {
 
     openSubmenu(domain) {
         this.currentDomain = domain;
+        this.startedFromMenu = false;
         this.els.submenuTitle.textContent = domain;
         this.renderSubcategories(domain);
         this.showScreen('submenu');
@@ -742,6 +757,7 @@ class GameApp {
         const subcats = Object.keys(GAME_DATA[randomDomain].subcategories);
         const randomSub = subcats[Math.floor(Math.random() * subcats.length)];
         
+        this.startedFromMenu = true;
         this.startGame(randomDomain, randomSub);
     }
 
@@ -765,6 +781,14 @@ class GameApp {
         }
         
         this.wordQueue = fullPool.slice(0, ROUND_SIZE);
+        
+        // Start logging session
+        this.sessionId = ActivityLogger.startSession('missing-vowels', {
+            category: domain,
+            subcategory: subcategory,
+            roundSize: ROUND_SIZE,
+            timeLimit: 60
+        });
         
         this.updateStats();
         // Breadcrumb style label
@@ -817,6 +841,9 @@ class GameApp {
         this.currentWord = this.wordQueue.pop();
         const puzzle = this.generatePuzzle(this.currentWord);
         
+        // Start timing for this word
+        this.wordStartTime = Date.now();
+        
         this.els.roundDisplay.textContent = `${this.wordsPlayed}/${ROUND_SIZE}`;
         
         // Reset Input state
@@ -848,9 +875,20 @@ class GameApp {
     }
 
     handleSuccess() {
+        const reactionTime = this.wordStartTime ? Date.now() - this.wordStartTime : 0;
         this.score++;
         this.showFeedback("Correct!", "text-emerald-400");
         this.history.push({ word: this.currentWord, status: 'correct', guess: this.els.input.value });
+        
+        // Log the correct answer
+        ActivityLogger.log(this.sessionId, 'guess', {
+            question: this.currentWord,
+            userAnswer: this.els.input.value,
+            correct: true,
+            reactionTime: reactionTime,
+            questionNumber: this.wordsPlayed
+        });
+        
         this.updateStats();
         this.els.input.value = '';
         this.nextWord();
@@ -872,7 +910,19 @@ class GameApp {
 
     skipWord() {
         if(!this.gameActive) return;
+        const reactionTime = this.wordStartTime ? Date.now() - this.wordStartTime : 0;
         this.history.push({ word: this.currentWord, status: 'skipped' });
+        
+        // Log the skipped answer
+        ActivityLogger.log(this.sessionId, 'guess', {
+            question: this.currentWord,
+            userAnswer: null,
+            correct: false,
+            skipped: true,
+            reactionTime: reactionTime,
+            questionNumber: this.wordsPlayed
+        });
+        
         this.showFeedback("Skipped", "text-yellow-400");
         this.els.input.value = '';
         this.nextWord();
@@ -924,11 +974,28 @@ class GameApp {
             while (this.wordQueue.length > 0) {
                 const w = this.wordQueue.pop();
                 this.history.push({ word: w, status: 'unseen' });
+                // Log unseen words
+                ActivityLogger.log(this.sessionId, 'guess', {
+                    question: w,
+                    userAnswer: null,
+                    correct: false,
+                    unseen: true,
+                    reactionTime: 0,
+                    questionNumber: this.history.length
+                });
             }
         }
         // If current word was active but not answered
         if (this.history.length < 5 && !this.history.find(h => h.word === this.currentWord)) {
              this.history.push({ word: this.currentWord, status: 'unseen' });
+             ActivityLogger.log(this.sessionId, 'guess', {
+                question: this.currentWord,
+                userAnswer: null,
+                correct: false,
+                unseen: true,
+                reactionTime: 0,
+                questionNumber: this.history.length
+            });
         }
 
         this.els.finalScore.textContent = this.score;
@@ -937,6 +1004,15 @@ class GameApp {
         this.careerStats.totalScore += this.score;
         this.careerStats.gamesPlayed += 1;
         this.saveData();
+        
+        // Log round end
+        ActivityLogger.log(this.sessionId, 'round_end', {
+            score: this.score,
+            totalQuestions: ROUND_SIZE,
+            category: this.currentDomain,
+            subcategory: this.currentSubcategory,
+            history: this.history
+        });
 
         // Render History
         this.els.answersList.innerHTML = this.history.map(item => {

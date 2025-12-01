@@ -5,6 +5,7 @@
   <title>Fourdle – 4-Letter Word Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
   <style>
     .game { max-width: 480px; }
     .board {
@@ -247,6 +248,12 @@
     let currentCol = 0;
     let isGameOver = false;
 
+    // Activity logging
+    let sessionId = null;
+    let guessStartTime = null;
+    let guesses = [];
+    const GAME_NAME = 'fourdle';
+
     const boardEl = document.getElementById("board");
     const messageEl = document.getElementById("message");
     const keyboardEl = document.getElementById("keyboard");
@@ -409,18 +416,46 @@
       updateKeyboardColours(letterStatuses);
       showWordInfo(guess);
 
-      if (guess === secretWord) {
-        showMessage("Splendid! You’ve got it.");
+      const isCorrect = guess === secretWord;
+      
+      // Log the guess
+      const guessData = {
+        guess: guess,
+        answer: secretWord,
+        correct: isCorrect,
+        reactionTime: guessStartTime ? Date.now() - guessStartTime : 0,
+        guessNumber: currentRow + 1
+      };
+      guesses.push(guessData);
+      ActivityLogger.log(sessionId, 'guess', guessData);
+
+      if (isCorrect) {
+        showMessage("Splendid! You've got it.");
         isGameOver = true;
+        // Log round end
+        ActivityLogger.log(sessionId, 'round_end', {
+          won: true,
+          answer: secretWord,
+          guessCount: currentRow + 1,
+          guesses: guesses
+        });
         return;
       }
 
       currentRow += 1;
       currentCol = 0;
+      guessStartTime = Date.now(); // Reset timer for next guess
 
       if (currentRow >= MAX_GUESSES) {
         showMessage(`Unlucky – the word was ${secretWord}`);
         isGameOver = true;
+        // Log round end
+        ActivityLogger.log(sessionId, 'round_end', {
+          won: false,
+          answer: secretWord,
+          guessCount: MAX_GUESSES,
+          guesses: guesses
+        });
       } else {
         showMessage("");
       }
@@ -502,8 +537,15 @@
       createKeyboard();
       showMessage("New game – good luck!");
       wordInfoEl.innerHTML = '';
-      // For debugging you can log the secret:
-      // console.log("Secret word:", secretWord);
+      
+      // Reset logging for new game
+      guesses = [];
+      // Start new logging session
+      sessionId = ActivityLogger.startSession(GAME_NAME, {
+        wordLength: WORD_LENGTH,
+        maxGuesses: MAX_GUESSES
+      });
+      guessStartTime = Date.now();
     }
 
     // Physical keyboard support

@@ -440,6 +440,7 @@
         </div>
     </div>
 
+    <script src="activity-logger.js"></script>
     <script>
         /**
          * QUESTION BANK
@@ -523,11 +524,21 @@
         let attempted = 0;
         let answeredQuestions = new Set(); // Track which questions have been answered
         let currentQuestionAnswered = false; // Track if current question has been checked
+        
+        // Activity logging
+        let sessionId = null;
+        let questionStartTime = null;
+        let gameHistory = [];
 
         /**
          * Initialize the game when the page loads
          */
         function initGame() {
+            // Start logging session
+            sessionId = ActivityLogger.startSession('rhyme-time', {
+                totalQuestions: questionBank.length
+            });
+            gameHistory = [];
             displayQuestion();
             updateScoreboard();
         }
@@ -538,6 +549,9 @@
          */
         function displayQuestion() {
             const question = questionBank[currentQuestionIndex];
+            
+            // Start timing for this question
+            questionStartTime = Date.now();
             
             // Update question number
             document.getElementById('questionNumber').textContent = 
@@ -598,6 +612,9 @@
                 return;
             }
             
+            // Calculate reaction time
+            const reactionTime = questionStartTime ? Date.now() - questionStartTime : 0;
+            
             // Normalize answers for comparison
             const isAnswer1Correct = normalizeAnswer(userAnswer1) === normalizeAnswer(question.answer1);
             const isAnswer2Correct = normalizeAnswer(userAnswer2) === normalizeAnswer(question.answer2);
@@ -610,6 +627,24 @@
                 if (bothCorrect) {
                     score++;
                 }
+                
+                // Log the answer
+                const guessData = {
+                    questionNumber: currentQuestionIndex + 1,
+                    clue1: question.clue1,
+                    clue2: question.clue2,
+                    answer1: question.answer1,
+                    answer2: question.answer2,
+                    userAnswer1: userAnswer1,
+                    userAnswer2: userAnswer2,
+                    correct: bothCorrect,
+                    answer1Correct: isAnswer1Correct,
+                    answer2Correct: isAnswer2Correct,
+                    reactionTime: reactionTime,
+                    revealed: false
+                };
+                gameHistory.push(guessData);
+                ActivityLogger.log(sessionId, 'guess', guessData);
             }
             
             // Visual feedback on inputs
@@ -664,11 +699,29 @@
          */
         function showAnswer() {
             const question = questionBank[currentQuestionIndex];
+            const reactionTime = questionStartTime ? Date.now() - questionStartTime : 0;
             
             // Mark as attempted if not already
             if (!answeredQuestions.has(currentQuestionIndex)) {
                 attempted++;
                 answeredQuestions.add(currentQuestionIndex);
+                
+                // Log the revealed answer
+                const guessData = {
+                    questionNumber: currentQuestionIndex + 1,
+                    clue1: question.clue1,
+                    clue2: question.clue2,
+                    answer1: question.answer1,
+                    answer2: question.answer2,
+                    userAnswer1: document.getElementById('answer1').value || null,
+                    userAnswer2: document.getElementById('answer2').value || null,
+                    correct: false,
+                    revealed: true,
+                    reactionTime: reactionTime
+                };
+                gameHistory.push(guessData);
+                ActivityLogger.log(sessionId, 'guess', guessData);
+                
                 updateScoreboard();
             }
             
@@ -704,6 +757,14 @@
             
             // Check if we've reached the end
             if (currentQuestionIndex >= questionBank.length) {
+                // Log round end
+                ActivityLogger.log(sessionId, 'round_end', {
+                    score: score,
+                    totalQuestions: questionBank.length,
+                    attempted: attempted,
+                    history: gameHistory
+                });
+                
                 // Show final score
                 const playAgain = confirm(
                     `Game Complete!\n\nFinal Score: ${score} out of ${questionBank.length}\n` +
@@ -732,6 +793,13 @@
             attempted = 0;
             answeredQuestions.clear();
             currentQuestionAnswered = false;
+            
+            // Start new logging session
+            sessionId = ActivityLogger.startSession('rhyme-time', {
+                totalQuestions: questionBank.length
+            });
+            gameHistory = [];
+            
             displayQuestion();
             updateScoreboard();
         }

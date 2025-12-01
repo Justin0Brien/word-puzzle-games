@@ -5,6 +5,7 @@
   <title>Wordle – 5-Letter Word Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
   <style>
     .game { max-width: 520px; }
     .board {
@@ -346,6 +347,11 @@
     let currentCol = 0;
     let isGameOver = false;
 
+    // Activity logging
+    let sessionId = null;
+    let guessStartTime = null;
+    const GAME_NAME = 'wordle';
+
     const boardEl = document.getElementById("board");
     const messageEl = document.getElementById("message");
     const keyboardEl = document.getElementById("keyboard");
@@ -484,6 +490,10 @@
         return;
       }
 
+      // Calculate reaction time
+      const reactionTimeMs = guessStartTime ? Date.now() - guessStartTime : null;
+      guessStartTime = Date.now(); // Reset for next guess
+
       const evaluation = evaluateGuess(guess, secretWord);
       const letterStatuses = {};
 
@@ -504,9 +514,27 @@
       updateKeyboardColours(letterStatuses);
       showWordInfo(guess);
 
-      if (guess === secretWord) {
+      const isCorrect = guess === secretWord;
+      
+      // Log the guess
+      ActivityLogger.logAction(sessionId, GAME_NAME, 'guess', {
+        guess,
+        correct: isCorrect,
+        evaluation: evaluation.join(','),
+        attemptNumber: currentRow + 1,
+        reactionTimeMs
+      });
+
+      if (isCorrect) {
         showMessage("Splendid! You've got it.");
         isGameOver = true;
+        // Log session end - won
+        ActivityLogger.endSession(sessionId, GAME_NAME, {
+          won: true,
+          score: MAX_GUESSES - currentRow,
+          attempts: currentRow + 1,
+          targetWord: secretWord
+        });
         return;
       }
 
@@ -516,6 +544,13 @@
       if (currentRow >= MAX_GUESSES) {
         showMessage(`Unlucky – the word was ${secretWord}`);
         isGameOver = true;
+        // Log session end - lost
+        ActivityLogger.endSession(sessionId, GAME_NAME, {
+          won: false,
+          score: 0,
+          attempts: MAX_GUESSES,
+          targetWord: secretWord
+        });
       } else {
         showMessage("");
       }
@@ -597,6 +632,13 @@
       createKeyboard();
       showMessage("New game – good luck!");
       wordInfoEl.innerHTML = '';
+      
+      // Start new logging session
+      sessionId = ActivityLogger.startSession(GAME_NAME, {
+        wordLength: WORD_LENGTH,
+        maxGuesses: MAX_GUESSES
+      });
+      guessStartTime = Date.now();
     }
 
     document.addEventListener("keydown", (event) => {

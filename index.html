@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word & Puzzle Games</title>
+    <script src="activity-logger.js"></script>
     <style>
         :root {
             --bg: #0f172a;
@@ -13,6 +14,8 @@
             --text-muted: #94a3b8;
             --accent: #38bdf8;
             --accent-hover: #7dd3fc;
+            --danger: #ef4444;
+            --success: #22c55e;
         }
 
         * {
@@ -121,6 +124,208 @@
             font-size: 0.9rem;
         }
 
+        /* Activity Log Styles */
+        .activity-section {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--card-bg);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .activity-header h2 {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+
+        .activity-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-hover);
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+        }
+
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--card-hover);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--card-hover);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .log-entry {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border-left: 3px solid var(--accent);
+        }
+
+        .log-entry.session_start {
+            border-left-color: var(--success);
+        }
+
+        .log-entry.session_end {
+            border-left-color: #a78bfa;
+        }
+
+        .log-entry.action {
+            border-left-color: var(--accent);
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .log-game {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .log-details {
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .correct {
+            color: var(--success);
+        }
+
+        .incorrect {
+            color: var(--danger);
+        }
+
+        .no-data {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem;
+        }
+
         @media (max-width: 480px) {
             body {
                 padding: 1rem;
@@ -132,6 +337,11 @@
 
             .game-card {
                 padding: 1.5rem;
+            }
+
+            .activity-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -197,6 +407,214 @@
         <footer>
             <p>More games coming soon!</p>
         </footer>
+
+        <!-- Activity Log Section -->
+        <section class="activity-section">
+            <div class="activity-header">
+                <h2>📊 Activity Log</h2>
+                <div class="activity-buttons">
+                    <button class="btn" onclick="viewActivity()">View Log</button>
+                    <button class="btn btn-primary" onclick="exportActivity()">Export</button>
+                    <button class="btn btn-danger" onclick="clearActivity()">Delete All</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats populated by JS -->
+            </div>
+        </section>
     </div>
+
+    <!-- Activity Log Modal -->
+    <div class="modal-overlay" id="activityModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Activity Log</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="activityLogContent">
+                <!-- Log entries populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update stats display
+        function updateStats() {
+            const stats = ActivityLogger.getStats();
+            const grid = document.getElementById('statsGrid');
+            
+            let html = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.totalSessions}</div>
+                    <div class="stat-label">Games Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.totalGuesses || 0}</div>
+                    <div class="stat-label">Total Guesses</div>
+                </div>
+            `;
+            
+            // Add per-game stats
+            Object.entries(stats.gameStats).forEach(([game, data]) => {
+                const winRate = data.gamesPlayed > 0 
+                    ? Math.round((data.wins / data.gamesPlayed) * 100) 
+                    : 0;
+                let label = game;
+                if (data.wins > 0 || data.losses > 0) {
+                    label += ` (${data.wins}W/${data.losses}L)`;
+                }
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${data.gamesPlayed}</div>
+                        <div class="stat-label">${label}</div>
+                    </div>
+                `;
+            });
+            
+            if (stats.totalSessions === 0) {
+                html = `
+                    <div class="stat-card" style="grid-column: 1 / -1;">
+                        <div class="stat-value">—</div>
+                        <div class="stat-label">No activity yet. Play some games!</div>
+                    </div>
+                `;
+            }
+            
+            grid.innerHTML = html;
+        }
+        
+        // View activity log
+        function viewActivity() {
+            const logs = ActivityLogger.getRecentActivity(100);
+            const content = document.getElementById('activityLogContent');
+            
+            if (logs.length === 0) {
+                content.innerHTML = '<div class="no-data">No activity recorded yet. Play some games to see your history!</div>';
+            } else {
+                let html = '';
+                // Show newest first
+                logs.reverse().forEach(entry => {
+                    const time = new Date(entry.timestamp).toLocaleString();
+                    let details = '';
+                    let game = entry.game || '';
+                    
+                    if (entry.type === 'session_start') {
+                        details = `Started a new game`;
+                        if (entry.category) details += ` - ${entry.category}`;
+                        if (entry.subcategory) details += ` / ${entry.subcategory}`;
+                        if (entry.wordLength) details += ` (${entry.wordLength} letters)`;
+                    } else if (entry.type === 'session_end' || entry.type === 'round_end') {
+                        details = `Game ended`;
+                        if (entry.score !== undefined) details += ` - Score: ${entry.score}`;
+                        if (entry.guessCount !== undefined) details += ` in ${entry.guessCount} guesses`;
+                        if (entry.won === true) details += ' ✓ Won';
+                        if (entry.won === false) details += ' ✗ Lost';
+                        if (entry.targetWord) details += ` (Word: ${entry.targetWord})`;
+                        if (entry.answer) details += ` (Answer: ${entry.answer})`;
+                    } else if (entry.type === 'action') {
+                        if (entry.action === 'guess') {
+                            details = `Guessed: <strong>${entry.guess}</strong>`;
+                            if (entry.correct) details += ' <span class="correct">✓</span>';
+                        } else if (entry.action === 'answer') {
+                            details = `Answered: <strong>${entry.answer || entry.answer1}</strong>`;
+                            if (entry.correct) details += ' <span class="correct">✓</span>';
+                            else details += ' <span class="incorrect">✗</span>';
+                        } else if (entry.action === 'skip') {
+                            details = `Skipped question`;
+                            if (entry.correctAnswer) details += ` (Answer was: ${entry.correctAnswer})`;
+                        } else if (entry.action === 'show_answer') {
+                            details = `Revealed answer`;
+                        } else {
+                            details = entry.action;
+                        }
+                        if (entry.reactionTimeMs) {
+                            details += ` <span class="log-time">(${(entry.reactionTimeMs / 1000).toFixed(1)}s)</span>`;
+                        }
+                    } else if (entry.type === 'guess') {
+                        // New format guess events
+                        if (entry.guess) {
+                            details = `Guessed: <strong>${entry.guess}</strong>`;
+                            if (entry.correct) details += ' <span class="correct">✓</span>';
+                            else details += ' <span class="incorrect">✗</span>';
+                        } else if (entry.userAnswer !== undefined) {
+                            if (entry.userAnswer) {
+                                details = `Answered: <strong>${entry.userAnswer}</strong>`;
+                            } else if (entry.skipped) {
+                                details = `Skipped`;
+                            } else if (entry.unseen) {
+                                details = `Time ran out`;
+                            } else if (entry.revealed) {
+                                details = `Revealed answer`;
+                            }
+                            if (entry.question) details += ` (Q: ${entry.question})`;
+                            if (entry.correct) details += ' <span class="correct">✓</span>';
+                            else if (!entry.unseen) details += ' <span class="incorrect">✗</span>';
+                        } else if (entry.userAnswer1 !== undefined) {
+                            // Rhyme time
+                            details = `Answered: <strong>${entry.userAnswer1}</strong> / <strong>${entry.userAnswer2}</strong>`;
+                            if (entry.correct) details += ' <span class="correct">✓</span>';
+                            else if (entry.revealed) details += ' (revealed)';
+                            else details += ' <span class="incorrect">✗</span>';
+                        }
+                        if (entry.reactionTime) {
+                            details += ` <span class="log-time">(${(entry.reactionTime / 1000).toFixed(1)}s)</span>`;
+                        }
+                    }
+                    
+                    html += `
+                        <div class="log-entry ${entry.type}">
+                            <span class="log-time">${time}</span>
+                            <span class="log-game">${game}</span>
+                            <div class="log-details">${details}</div>
+                        </div>
+                    `;
+                });
+                content.innerHTML = html;
+            }
+            
+            document.getElementById('activityModal').classList.add('active');
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('activityModal').classList.remove('active');
+        }
+        
+        // Export activity
+        function exportActivity() {
+            const logs = ActivityLogger.getLogs();
+            if (logs.length === 0) {
+                alert('No activity to export yet!');
+                return;
+            }
+            ActivityLogger.downloadLogs();
+        }
+        
+        // Clear activity
+        function clearActivity() {
+            const logs = ActivityLogger.getLogs();
+            if (logs.length === 0) {
+                alert('No activity to delete!');
+                return;
+            }
+            if (confirm('Are you sure you want to delete all activity history? This cannot be undone.')) {
+                ActivityLogger.clearLogs();
+                updateStats();
+                alert('Activity log cleared!');
+            }
+        }
+        
+        // Close modal on escape or click outside
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        document.getElementById('activityModal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
+        
+        // Initialize stats on page load
+        updateStats();
+    </script>
 </body>
 </html>
