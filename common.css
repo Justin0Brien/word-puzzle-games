@@ -113,6 +113,40 @@ main {
   transform: rotateX(360deg);
 }
 
+/* Invalid word shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+@keyframes flash-red {
+  0% { 
+    background-color: transparent;
+    border-color: var(--tile-border-filled);
+  }
+  25% { 
+    background-color: rgba(239, 68, 68, 0.4);
+    border-color: #ef4444;
+  }
+  50% { 
+    background-color: rgba(239, 68, 68, 0.6);
+    border-color: #dc2626;
+  }
+  75% { 
+    background-color: rgba(239, 68, 68, 0.4);
+    border-color: #ef4444;
+  }
+  100% { 
+    background-color: transparent;
+    border-color: var(--tile-border-filled);
+  }
+}
+
+.tile.invalid {
+  animation: shake 0.5s ease-in-out, flash-red 0.5s ease-in-out;
+}
+
 .message {
   min-height: 1.25rem;
   text-align: center;

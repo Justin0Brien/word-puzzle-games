@@ -655,6 +655,16 @@
       messageEl.textContent = text;
     }
 
+    function shakeRow(row) {
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        const tile = getTile(row, col);
+        tile.classList.add("invalid");
+        tile.addEventListener("animationend", () => {
+          tile.classList.remove("invalid");
+        }, { once: true });
+      }
+    }
+
     function getTile(row, col) {
       return boardEl.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
     }
@@ -716,6 +726,7 @@
 
       if (!WORD_LIST.includes(guess)) {
         showMessage("Word not in list");
+        shakeRow(currentRow);
         return;
       }
 
