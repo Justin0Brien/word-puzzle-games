@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Flashcards – Test A=1 to Z=26</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
+  <style>
+    .game {
+      max-width: 600px;
+    }
+    
+    .setup-screen, .game-screen, .results-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .setup-screen.active, .game-screen.active, .results-screen.active {
+      display: flex;
+    }
+    
+    /* Setup Screen */
+    .setup-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .setup-label {
+      color: #818384;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .card-count-selector {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .count-btn {
+      padding: 0.75rem 1.25rem;
+      background: #1a1a1b;
+      border: 2px solid #3a3a3c;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 60px;
+    }
+    
+    .count-btn:hover {
+      background: #2d2d30;
+      border-color: #565758;
+    }
+    
+    .count-btn.selected {
+      background: #538d4e;
+      border-color: #538d4e;
+      color: #fff;
+    }
+    
+    .start-btn {
+      padding: 1rem 3rem;
+      background: #538d4e;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 1rem;
+    }
+    
+    .start-btn:hover {
+      background: #6aaa5d;
+      transform: scale(1.02);
+    }
+    
+    /* Game Screen */
+    .progress-bar {
+      width: 100%;
+      max-width: 400px;
+      height: 8px;
+      background: #2d2d30;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #538d4e, #6aaa5d);
+      transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+      color: #818384;
+      font-size: 0.85rem;
+    }
+    
+    .flashcard {
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(145deg, #1a1a1b, #2d2d30);
+      border: 3px solid #3a3a3c;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 5rem;
+      font-weight: 700;
+      color: #7dd3fc;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+    }
+    
+    .flashcard.correct {
+      border-color: #538d4e;
+      background: linear-gradient(145deg, #1a2e1a, #2d402d);
+      color: #6aaa5d;
+    }
+    
+    .flashcard.wrong {
+      border-color: #ef4444;
+      background: linear-gradient(145deg, #2e1a1a, #402d2d);
+      color: #ef4444;
+      animation: shake 0.4s ease;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    
+    .feedback {
+      height: 2rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .feedback.correct { color: #538d4e; }
+    .feedback.wrong { color: #ef4444; }
+    
+    .instruction {
+      color: #818384;
+      font-size: 1rem;
+    }
+    
+    .timer-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.5rem;
+      color: #fbbf24;
+    }
+    
+    /* Results Screen */
+    .results-card {
+      background: #1a1a1b;
+      border: 2px solid #3a3a3c;
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 450px;
+    }
+    
+    .results-title {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .results-title h2 {
+      color: var(--accent);
+      font-size: 1.75rem;
+      margin: 0 0 0.25rem 0;
+    }
+    
+    .results-title .subtitle {
+      color: #818384;
+      font-size: 0.9rem;
+    }
+    
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #3a3a3c;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .stat-value.accuracy { color: #538d4e; }
+    .stat-value.time { color: #fbbf24; }
+    .stat-value.errors { color: #ef4444; }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: #818384;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .focus-section {
+      margin-top: 1rem;
+    }
+    
+    .focus-title {
+      color: #818384;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .focus-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .focus-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: #2d2d30;
+      border-radius: 6px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    
+    .focus-item.slow {
+      border-left: 3px solid #fbbf24;
+    }
+    
+    .focus-item.wrong {
+      border-left: 3px solid #ef4444;
+    }
+    
+    .focus-letter {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .focus-number {
+      font-size: 0.9rem;
+      color: #7dd3fc;
+    }
+    
+    .focus-time {
+      font-size: 0.75rem;
+      color: #818384;
+    }
+    
+    .no-focus {
+      color: #538d4e;
+      font-size: 0.9rem;
+      padding: 0.5rem;
+    }
+    
+    .results-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    
+    .result-btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .result-btn.primary {
+      background: #538d4e;
+      border-color: #538d4e;
+      color: #fff;
+    }
+    
+    .result-btn.primary:hover {
+      background: #6aaa5d;
+    }
+    
+    .result-btn.secondary {
+      background: #2d2d30;
+      color: var(--text);
+    }
+    
+    .result-btn.secondary:hover {
+      background: #3a3a3c;
+    }
+    
+    /* Response history */
+    .history-section {
+      margin-top: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem;
+      border-bottom: 1px solid #2d2d30;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+    }
+    
+    .history-item.correct { color: #538d4e; }
+    .history-item.wrong { color: #ef4444; }
+    
+    .history-q {
+      color: #7dd3fc;
+    }
+    
+    .history-answer {
+      color: var(--accent);
+    }
+    
+    .history-time {
+      color: #818384;
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <header>
+      <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
+      <h1>Code Flashcards</h1>
+      <small>Test your A=1 to Z=26 knowledge</small>
+    </header>
+
+    <main>
+      <!-- Setup Screen -->
+      <div class="setup-screen active" id="setupScreen">
+        <div class="setup-option">
+          <span class="setup-label">Number of Cards</span>
+          <div class="card-count-selector" id="countSelector">
+            <button class="count-btn" data-count="5">5</button>
+            <button class="count-btn selected" data-count="10">10</button>
+            <button class="count-btn" data-count="15">15</button>
+            <button class="count-btn" data-count="20">20</button>
+            <button class="count-btn" data-count="26">26</button>
+          </div>
+        </div>
+        
+        <button class="start-btn" id="startBtn">Start Practice</button>
+        
+        <p class="instruction">Press the letter key (A-Z) that matches the number shown</p>
+      </div>
+
+      <!-- Game Screen -->
+      <div class="game-screen" id="gameScreen">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-text" id="progressText">1 / 10</span>
+        
+        <div class="flashcard" id="flashcard">
+          <span id="cardNumber">1</span>
+        </div>
+        
+        <div class="feedback" id="feedback"></div>
+        
+        <div class="timer-display" id="timerDisplay">0.0s</div>
+        
+        <p class="instruction">Press the corresponding letter key</p>
+      </div>
+
+      <!-- Results Screen -->
+      <div class="results-screen" id="resultsScreen">
+        <div class="results-card">
+          <div class="results-title">
+            <h2>🎯 Results</h2>
+            <span class="subtitle" id="resultSubtitle">Great work!</span>
+          </div>
+          
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-value accuracy" id="accuracyStat">100%</div>
+              <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value time" id="avgTimeStat">0.0s</div>
+              <div class="stat-label">Avg Time</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value errors" id="errorsStat">0</div>
+              <div class="stat-label">Errors</div>
+            </div>
+          </div>
+          
+          <div class="focus-section">
+            <div class="focus-title">
+              <span>📚</span> Cards to Focus On
+            </div>
+            <div class="focus-list" id="focusList">
+              <span class="no-focus">Perfect! No cards need extra practice.</span>
+            </div>
+          </div>
+          
+          <div class="focus-section">
+            <div class="focus-title">
+              <span>📝</span> Response History
+            </div>
+            <div class="history-section" id="historySection"></div>
+          </div>
+          
+          <div class="results-actions">
+            <button class="result-btn secondary" id="backToSetupBtn">Change Settings</button>
+            <button class="result-btn primary" id="playAgainBtn">Play Again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="keyboard-hints">
+        <span><span class="key-hint">A-Z</span> Answer</span>
+        <span><span class="key-hint">H</span> Home</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // DOM Elements
+    const setupScreen = document.getElementById('setupScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const resultsScreen = document.getElementById('resultsScreen');
+    const countSelector = document.getElementById('countSelector');
+    const startBtn = document.getElementById('startBtn');
+    const flashcard = document.getElementById('flashcard');
+    const cardNumber = document.getElementById('cardNumber');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const feedback = document.getElementById('feedback');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const accuracyStat = document.getElementById('accuracyStat');
+    const avgTimeStat = document.getElementById('avgTimeStat');
+    const errorsStat = document.getElementById('errorsStat');
+    const focusList = document.getElementById('focusList');
+    const historySection = document.getElementById('historySection');
+    const resultSubtitle = document.getElementById('resultSubtitle');
+    const backToSetupBtn = document.getElementById('backToSetupBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+
+    // Game State
+    let cardCount = 10;
+    let currentIndex = 0;
+    let cards = [];
+    let results = [];
+    let cardStartTime = 0;
+    let timerInterval = null;
+    let isWaiting = false;
+    let sessionId = null;
+
+    // Generate random cards
+    function generateCards(count) {
+      const all = [];
+      for (let i = 1; i <= 26; i++) all.push(i);
+      
+      // Shuffle
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      
+      return all.slice(0, count);
+    }
+
+    // Convert number to letter
+    function numberToLetter(num) {
+      return String.fromCharCode(64 + num);
+    }
+
+    // Show screen
+    function showScreen(screen) {
+      setupScreen.classList.remove('active');
+      gameScreen.classList.remove('active');
+      resultsScreen.classList.remove('active');
+      screen.classList.add('active');
+    }
+
+    // Start game
+    function startGame() {
+      cards = generateCards(cardCount);
+      results = [];
+      currentIndex = 0;
+      isWaiting = false;
+      
+      sessionId = ActivityLogger.startSession('code-flashcard', { cardCount });
+      
+      showScreen(gameScreen);
+      showCard();
+    }
+
+    // Show current card
+    function showCard() {
+      const num = cards[currentIndex];
+      cardNumber.textContent = num;
+      
+      progressFill.style.width = ((currentIndex) / cards.length * 100) + '%';
+      progressText.textContent = (currentIndex + 1) + ' / ' + cards.length;
+      
+      flashcard.classList.remove('correct', 'wrong');
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      
+      cardStartTime = Date.now();
+      startTimer();
+    }
+
+    // Start timer display
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerDisplay.textContent = '0.0s';
+      
+      timerInterval = setInterval(function() {
+        const elapsed = (Date.now() - cardStartTime) / 1000;
+        timerDisplay.textContent = elapsed.toFixed(1) + 's';
+      }, 100);
+    }
+
+    // Stop timer
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // Handle answer
+    function handleAnswer(letter) {
+      if (isWaiting) return;
+      
+      const num = cards[currentIndex];
+      const correctLetter = numberToLetter(num);
+      const responseTime = Date.now() - cardStartTime;
+      const isCorrect = letter === correctLetter;
+      
+      stopTimer();
+      isWaiting = true;
+      
+      results.push({
+        number: num,
+        correctLetter: correctLetter,
+        userAnswer: letter,
+        isCorrect: isCorrect,
+        responseTime: responseTime
+      });
+      
+      // Show feedback
+      if (isCorrect) {
+        flashcard.classList.add('correct');
+        feedback.className = 'feedback correct';
+        feedback.innerHTML = '✓ Correct!';
+      } else {
+        flashcard.classList.add('wrong');
+        feedback.className = 'feedback wrong';
+        feedback.innerHTML = '✗ ' + correctLetter + ' not ' + letter;
+      }
+      
+      // Move to next card after delay
+      setTimeout(function() {
+        isWaiting = false;
+        currentIndex++;
+        
+        if (currentIndex >= cards.length) {
+          endGame();
+        } else {
+          showCard();
+        }
+      }, isCorrect ? 600 : 1200);
+    }
+
+    // End game and show results
+    function endGame() {
+      stopTimer();
+      
+      const correct = results.filter(function(r) { return r.isCorrect; }).length;
+      const accuracy = Math.round((correct / results.length) * 100);
+      const avgTime = results.reduce(function(sum, r) { return sum + r.responseTime; }, 0) / results.length;
+      const errors = results.length - correct;
+      
+      // Update stats
+      accuracyStat.textContent = accuracy + '%';
+      avgTimeStat.textContent = (avgTime / 1000).toFixed(1) + 's';
+      errorsStat.textContent = errors;
+      
+      // Set subtitle based on performance
+      if (accuracy === 100 && avgTime < 1500) {
+        resultSubtitle.textContent = '🌟 Outstanding! Lightning fast!';
+      } else if (accuracy === 100) {
+        resultSubtitle.textContent = '🎉 Perfect score!';
+      } else if (accuracy >= 80) {
+        resultSubtitle.textContent = '👍 Great work! Keep practicing!';
+      } else if (accuracy >= 60) {
+        resultSubtitle.textContent = '📚 Good effort! Review the focus cards.';
+      } else {
+        resultSubtitle.textContent = '💪 Keep practicing! You\'ll improve!';
+      }
+      
+      // Find cards to focus on (wrong or slow > 3 seconds)
+      const focusCards = results.filter(function(r) {
+        return !r.isCorrect || r.responseTime > 3000;
+      }).sort(function(a, b) {
+        // Wrong answers first, then by time
+        if (a.isCorrect !== b.isCorrect) return a.isCorrect ? 1 : -1;
+        return b.responseTime - a.responseTime;
+      });
+      
+      // Build focus list
+      focusList.innerHTML = '';
+      if (focusCards.length === 0) {
+        focusList.innerHTML = '<span class="no-focus">✨ Perfect! No cards need extra practice.</span>';
+      } else {
+        focusCards.forEach(function(card) {
+          const item = document.createElement('div');
+          item.className = 'focus-item ' + (card.isCorrect ? 'slow' : 'wrong');
+          item.innerHTML = 
+            '<span class="focus-number">' + card.number + '</span>' +
+            '<span class="focus-letter">= ' + card.correctLetter + '</span>' +
+            '<span class="focus-time">' + (card.responseTime / 1000).toFixed(1) + 's</span>';
+          focusList.appendChild(item);
+        });
+      }
+      
+      // Build history
+      historySection.innerHTML = '';
+      results.forEach(function(r, i) {
+        const item = document.createElement('div');
+        item.className = 'history-item ' + (r.isCorrect ? 'correct' : 'wrong');
+        item.innerHTML = 
+          '<span class="history-q">' + r.number + '</span>' +
+          '<span class="history-answer">' + (r.isCorrect ? '✓' : '✗') + ' ' + r.userAnswer + (r.isCorrect ? '' : ' → ' + r.correctLetter) + '</span>' +
+          '<span class="history-time">' + (r.responseTime / 1000).toFixed(1) + 's</span>';
+        historySection.appendChild(item);
+      });
+      
+      // Log activity
+      ActivityLogger.endSession(sessionId, 'code-flashcard', {
+        accuracy: accuracy,
+        avgTime: Math.round(avgTime),
+        errors: errors,
+        focusCount: focusCards.length
+      });
+      
+      showScreen(resultsScreen);
+    }
+
+    // Event Listeners
+    countSelector.addEventListener('click', function(e) {
+      if (e.target.classList.contains('count-btn')) {
+        countSelector.querySelectorAll('.count-btn').forEach(function(btn) {
+          btn.classList.remove('selected');
+        });
+        e.target.classList.add('selected');
+        cardCount = parseInt(e.target.dataset.count);
+      }
+    });
+
+    startBtn.addEventListener('click', startGame);
+    playAgainBtn.addEventListener('click', startGame);
+    backToSetupBtn.addEventListener('click', function() {
+      showScreen(setupScreen);
+    });
+
+    // Keyboard input
+    document.addEventListener('keydown', function(e) {
+      const key = e.key.toUpperCase();
+      
+      // Home shortcut
+      if (key === 'H' && !gameScreen.classList.contains('active')) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      // Letter input during game
+      if (gameScreen.classList.contains('active') && key >= 'A' && key <= 'Z') {
+        e.preventDefault();
+        handleAnswer(key);
+      }
+      
+      // Enter to start
+      if (setupScreen.classList.contains('active') && e.key === 'Enter') {
+        startGame();
+      }
+      
+      // Enter to play again
+      if (resultsScreen.classList.contains('active') && e.key === 'Enter') {
+        startGame();
+      }
+    });
+  </script>
+</body>
+</html>

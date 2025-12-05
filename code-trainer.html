@@ -8,7 +8,7 @@
   <script src="activity-logger.js"></script>
   <style>
     .game {
-      max-width: 800px;
+      max-width: 900px;
     }
     
     .trainer-container {
@@ -21,40 +21,37 @@
     
     .code-display {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 2rem;
-      font-weight: 700;
       background: #1a1a1b;
       border: 2px solid #3a3a3c;
       border-radius: 8px;
-      padding: 1rem 1.5rem;
-      min-height: 120px;
+      padding: 1.5rem;
+      min-height: 140px;
       width: 100%;
-      max-width: 600px;
-      position: relative;
+      max-width: 700px;
+      overflow-x: auto;
     }
     
-    .letter-row, .number-row {
+    .code-row {
       display: flex;
       flex-wrap: wrap;
-      min-height: 2.5rem;
-      line-height: 1;
     }
     
-    .letter-row {
-      color: var(--accent);
-      border-bottom: 1px solid #3a3a3c;
-      padding-bottom: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .number-row {
-      color: #7dd3fc;
+    .code-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 36px;
+      flex-shrink: 0;
     }
     
     .char-cell {
-      width: 2ch;
-      text-align: center;
-      display: inline-block;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .char-cell.space {
@@ -62,11 +59,16 @@
     }
     
     .num-cell {
-      width: 2ch;
-      text-align: center;
-      display: inline-block;
       font-size: 1rem;
-      vertical-align: top;
+      font-weight: 600;
+      color: #7dd3fc;
+      height: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-top: 1px solid #3a3a3c;
+      width: 100%;
+      margin-top: 0.25rem;
       padding-top: 0.25rem;
     }
     
@@ -74,9 +76,13 @@
       color: #565758;
     }
     
+    .num-cell.non-letter {
+      color: #565758;
+    }
+    
     .input-section {
       width: 100%;
-      max-width: 600px;
+      max-width: 700px;
     }
     
     .text-input {
@@ -91,6 +97,7 @@
       color: var(--text);
       outline: none;
       text-transform: uppercase;
+      letter-spacing: 0.1em;
     }
     
     .text-input:focus {
@@ -253,8 +260,7 @@
         </div>
         
         <div class="code-display">
-          <div class="letter-row" id="letterRow"></div>
-          <div class="number-row" id="numberRow"></div>
+          <div class="code-row" id="codeRow"></div>
         </div>
         
         <button class="clear-btn" id="clearBtn">Clear</button>
@@ -291,8 +297,7 @@
 
   <script>
     const textInput = document.getElementById('textInput');
-    const letterRow = document.getElementById('letterRow');
-    const numberRow = document.getElementById('numberRow');
+    const codeRow = document.getElementById('codeRow');
     const charCount = document.getElementById('charCount');
     const letterCount = document.getElementById('letterCount');
     const codeSum = document.getElementById('codeSum');
@@ -330,8 +335,7 @@
     function updateDisplay() {
       const text = textInput.value.toUpperCase();
       
-      letterRow.innerHTML = '';
-      numberRow.innerHTML = '';
+      codeRow.innerHTML = '';
       
       let letters = 0;
       let sum = 0;
@@ -340,8 +344,12 @@
         const char = text[i];
         const num = letterToNumber(char);
         
+        // Create a pair container for letter + number
+        const pair = document.createElement('div');
+        pair.className = 'code-pair';
+        
         // Letter cell
-        const letterCell = document.createElement('span');
+        const letterCell = document.createElement('div');
         letterCell.className = 'char-cell';
         if (char === ' ') {
           letterCell.classList.add('space');
@@ -349,10 +357,10 @@
         } else {
           letterCell.textContent = char;
         }
-        letterRow.appendChild(letterCell);
+        pair.appendChild(letterCell);
         
         // Number cell
-        const numCell = document.createElement('span');
+        const numCell = document.createElement('div');
         numCell.className = 'num-cell';
         if (num !== null) {
           numCell.textContent = num;
@@ -362,9 +370,12 @@
           numCell.classList.add('space');
           numCell.textContent = '·';
         } else {
+          numCell.classList.add('non-letter');
           numCell.textContent = '–';
         }
-        numberRow.appendChild(numCell);
+        pair.appendChild(numCell);
+        
+        codeRow.appendChild(pair);
       }
       
       charCount.textContent = text.length;
