@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Alphanumeric – Crack the Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
+  <style>
+    .game { max-width: 600px; }
+    
+    .category-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    
+    .code-display {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.5rem;
+      background: #1a1a1b;
+      border: 2px solid #3a3a3c;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      min-height: 80px;
+    }
+    
+    .code-word {
+      display: flex;
+      gap: 0.25rem;
+      margin: 0 0.5rem;
+    }
+    
+    .code-box {
+      width: 2.2rem;
+      height: 2.5rem;
+      background: linear-gradient(145deg, #2d2d30, #1f1f21);
+      border: 2px solid #538d4e;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #7dd3fc;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .answer-input {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.25rem;
+      text-align: center;
+      background: #1a1a1b;
+      border: 2px solid #3a3a3c;
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .answer-input:focus {
+      border-color: #538d4e;
+    }
+    
+    .answer-input::placeholder {
+      color: #6b7280;
+    }
+    
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #3a3a3c;
+      background: #2d2d30;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: #3a3a3c;
+    }
+    
+    .btn-primary {
+      background: #538d4e;
+      border-color: #538d4e;
+    }
+    
+    .btn-primary:hover {
+      background: #4a7c44;
+    }
+    
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: #1a1a1b;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .stat-value {
+      font-weight: 700;
+      color: #7dd3fc;
+    }
+    
+    .timer { color: #fbbf24; }
+    .score { color: #34d399; }
+    .round { color: #a78bfa; }
+    
+    .feedback {
+      min-height: 1.5rem;
+      text-align: center;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    
+    .feedback.correct { color: #34d399; }
+    .feedback.incorrect { color: #ef4444; }
+    
+    .menu-screen, .game-screen, .result-screen {
+      width: 100%;
+    }
+    
+    .hidden { display: none !important; }
+    
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .domain-btn {
+      padding: 1rem;
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 10px;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .domain-btn:hover {
+      background: #2d2d30;
+      border-color: #538d4e;
+      transform: translateY(-2px);
+    }
+    
+    .domain-btn .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .domain-btn .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .domain-btn .count {
+      font-size: 0.7rem;
+      color: #94a3b8;
+    }
+    
+    .subcategory-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+    
+    .subcategory-btn {
+      padding: 0.75rem;
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+    
+    .subcategory-btn:hover {
+      background: #2d2d30;
+      border-color: #7dd3fc;
+    }
+    
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #94a3b8;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .back-btn:hover {
+      color: var(--text);
+    }
+    
+    .random-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 0.5rem;
+    }
+    
+    .random-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+    
+    .result-card {
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    
+    .result-score {
+      font-size: 3rem;
+      font-weight: 800;
+      color: #34d399;
+    }
+    
+    .result-label {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+    
+    .history-list {
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    
+    .history-item {
+      padding: 0.5rem;
+      border-bottom: 1px solid #2d2d30;
+      font-size: 0.85rem;
+    }
+    
+    .history-item.correct { border-left: 3px solid #34d399; padding-left: 0.75rem; }
+    .history-item.incorrect { border-left: 3px solid #ef4444; padding-left: 0.75rem; }
+    
+    .history-answer { font-weight: 600; }
+    .history-code { color: #94a3b8; font-size: 0.75rem; }
+    
+    .key-ref {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #1a1a1b;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+    
+    .key-ref code {
+      color: #7dd3fc;
+      font-family: monospace;
+    }
+
+    @media (max-width: 480px) {
+      .code-box {
+        width: 1.8rem;
+        height: 2rem;
+        font-size: 0.9rem;
+      }
+      .domain-grid, .subcategory-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <header>
+      <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
+      <h1>Alphanumeric</h1>
+      <small>Crack the code where A=1, B=2, ... Z=26</small>
+    </header>
+
+    <main>
+      <!-- Menu Screen -->
+      <div id="menu-screen" class="menu-screen">
+        <button class="random-btn" onclick="app.startRandom()">
+          🎲 Random Category
+        </button>
+        <div class="domain-grid" id="domain-grid"></div>
+        <div class="key-ref">
+          <code>A=1 B=2 C=3 ... Z=26</code>
+        </div>
+      </div>
+
+      <!-- Submenu Screen -->
+      <div id="submenu-screen" class="menu-screen hidden">
+        <button class="back-btn" onclick="app.showMenu()">← Back</button>
+        <h2 id="submenu-title" style="margin-bottom: 0.5rem;"></h2>
+        <div class="subcategory-grid" id="subcategory-grid"></div>
+      </div>
+
+      <!-- Game Screen -->
+      <div id="game-screen" class="game-screen hidden">
+        <div class="stats-bar">
+          <div class="stat round">
+            Round <span class="stat-value" id="round-display">1/5</span>
+          </div>
+          <div class="stat score">
+            Score <span class="stat-value" id="score-display">0</span>
+          </div>
+          <div class="stat timer">
+            ⏱️ <span class="stat-value" id="timer-display">60</span>s
+          </div>
+        </div>
+        
+        <div class="category-label" id="category-label">Category</div>
+        <div class="code-display" id="code-display"></div>
+        
+        <input type="text" 
+               class="answer-input" 
+               id="answer-input" 
+               placeholder="Type your answer..."
+               autocomplete="off"
+               spellcheck="false">
+        
+        <div class="btn-row">
+          <button class="btn" onclick="app.skip()">Skip (Esc)</button>
+          <button class="btn btn-primary" onclick="app.submit()">Submit (Enter)</button>
+        </div>
+        
+        <div class="feedback" id="feedback"></div>
+      </div>
+
+      <!-- Result Screen -->
+      <div id="result-screen" class="result-screen hidden">
+        <div class="result-card">
+          <div class="result-label">Final Score</div>
+          <div class="result-score" id="final-score">0</div>
+          <div class="result-label">out of <span id="final-total">5</span></div>
+        </div>
+        
+        <div class="result-card">
+          <div class="result-label" style="margin-bottom: 0.5rem;">Round Review</div>
+          <div class="history-list" id="history-list"></div>
+        </div>
+        
+        <div class="btn-row">
+          <button class="btn" onclick="app.showMenu()">Change Topic (C)</button>
+          <button class="btn btn-primary" onclick="app.replay()">Play Again (P)</button>
+        </div>
+      </div>
+      
+      <div class="keyboard-hints" style="margin-top: 1rem;">
+        <span><span class="key-hint">Enter</span> Submit</span>
+        <span><span class="key-hint">Esc</span> Skip</span>
+        <span><span class="key-hint">H</span> Home</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Game data - same categories as missing vowels
+    const GAME_DATA = {
+      "Literature": {
+        icon: "📚",
+        subcategories: {
+          "Classic Novels": [
+            "PRIDE AND PREJUDICE", "GREAT EXPECTATIONS", "MOBY DICK", "WAR AND PEACE",
+            "JANE EYRE", "THE GREAT GATSBY", "WUTHERING HEIGHTS", "FRANKENSTEIN",
+            "ANIMAL FARM", "MIDDLEMARCH", "A TALE OF TWO CITIES", "DRACULA"
+          ],
+          "Shakespeare Plays": [
+            "HAMLET", "MACBETH", "KING LEAR", "OTHELLO", "TWELFTH NIGHT",
+            "ROMEO AND JULIET", "THE TEMPEST", "JULIUS CAESAR"
+          ],
+          "Harry Potter Characters": [
+            "HARRY POTTER", "HERMIONE GRANGER", "RON WEASLEY", "ALBUS DUMBLEDORE",
+            "SEVERUS SNAPE", "LORD VOLDEMORT", "SIRIUS BLACK", "RUBEUS HAGRID",
+            "DRACO MALFOY", "NEVILLE LONGBOTTOM", "LUNA LOVEGOOD", "GINNY WEASLEY"
+          ]
+        }
+      },
+      "Film and Television": {
+        icon: "🎬",
+        subcategories: {
+          "Best Picture Winners": [
+            "THE GODFATHER", "TITANIC", "GLADIATOR", "FORREST GUMP",
+            "CASABLANCA", "MOONLIGHT", "PARASITE", "THE DEPARTED"
+          ],
+          "British Sitcoms": [
+            "FAWLTY TOWERS", "BLACKADDER", "THE OFFICE", "FATHER TED",
+            "PEEP SHOW", "THE INBETWEENERS", "GAVIN AND STACEY", "FLEABAG"
+          ],
+          "Animated Films": [
+            "TOY STORY", "THE LION KING", "FINDING NEMO", "FROZEN",
+            "SHREK", "UP", "THE INCREDIBLES", "INSIDE OUT", "COCO"
+          ]
+        }
+      },
+      "Music": {
+        icon: "🎵",
+        subcategories: {
+          "Rock Bands": [
+            "THE ROLLING STONES", "LED ZEPPELIN", "PINK FLOYD", "QUEEN",
+            "THE BEATLES", "THE WHO", "FLEETWOOD MAC", "NIRVANA", "RADIOHEAD"
+          ],
+          "Pop Divas": [
+            "MADONNA", "WHITNEY HOUSTON", "BEYONCE", "TAYLOR SWIFT",
+            "ADELE", "LADY GAGA", "RIHANNA", "ARIANA GRANDE"
+          ],
+          "Musical Instruments": [
+            "SAXOPHONE", "VIOLIN", "GUITAR", "PIANO", "CLARINET",
+            "TRUMPET", "FLUTE", "CELLO", "DRUMS", "HARMONICA"
+          ]
+        }
+      },
+      "Geography": {
+        icon: "🌍",
+        subcategories: {
+          "European Capitals": [
+            "PARIS", "BERLIN", "ROME", "MADRID", "VIENNA", "STOCKHOLM",
+            "LONDON", "AMSTERDAM", "LISBON", "COPENHAGEN", "DUBLIN", "PRAGUE"
+          ],
+          "UK Cities": [
+            "LONDON", "EDINBURGH", "CARDIFF", "BELFAST", "MANCHESTER",
+            "BIRMINGHAM", "GLASGOW", "LIVERPOOL", "LEEDS", "BRISTOL"
+          ],
+          "World Rivers": [
+            "THAMES", "NILE", "AMAZON", "YANGTZE", "MISSISSIPPI",
+            "DANUBE", "GANGES", "VOLGA", "RHINE", "MEKONG"
+          ]
+        }
+      },
+      "Science": {
+        icon: "🔬",
+        subcategories: {
+          "Chemical Elements": [
+            "HYDROGEN", "HELIUM", "CARBON", "OXYGEN", "IRON",
+            "NITROGEN", "SODIUM", "GOLD", "SILVER", "COPPER"
+          ],
+          "Constellations": [
+            "ORION", "SCORPIUS", "LEO", "GEMINI", "TAURUS",
+            "PEGASUS", "AQUARIUS", "PISCES", "VIRGO", "LIBRA"
+          ],
+          "Dog Breeds": [
+            "LABRADOR", "POODLE", "BEAGLE", "BULLDOG", "BOXER",
+            "DALMATIAN", "CHIHUAHUA", "PUG", "HUSKY", "TERRIER"
+          ]
+        }
+      },
+      "Sport": {
+        icon: "⚽",
+        subcategories: {
+          "Football Clubs": [
+            "MANCHESTER UNITED", "LIVERPOOL", "ARSENAL", "CHELSEA",
+            "TOTTENHAM", "NEWCASTLE", "EVERTON", "WEST HAM"
+          ],
+          "Olympic Sports": [
+            "GYMNASTICS", "SWIMMING", "ATHLETICS", "CYCLING",
+            "ARCHERY", "FENCING", "ROWING", "DIVING", "BOXING"
+          ],
+          "Board Games": [
+            "MONOPOLY", "SCRABBLE", "CHESS", "CLUEDO", "RISK",
+            "BATTLESHIP", "BACKGAMMON", "DRAUGHTS", "YAHTZEE"
+          ]
+        }
+      },
+      "Food and Drink": {
+        icon: "🍽️",
+        subcategories: {
+          "Cocktails": [
+            "MARGARITA", "MARTINI", "MOJITO", "NEGRONI", "DAIQUIRI",
+            "MANHATTAN", "COSMOPOLITAN", "BELLINI", "GIMLET"
+          ],
+          "Types of Pasta": [
+            "SPAGHETTI", "PENNE", "FUSILLI", "MACARONI", "LINGUINE",
+            "RAVIOLI", "LASAGNE", "FARFALLE", "RIGATONI", "GNOCCHI"
+          ],
+          "Vegetables": [
+            "BROCCOLI", "SPINACH", "CARROT", "POTATO", "TOMATO",
+            "CUCUMBER", "PEPPER", "ONION", "CELERY", "CABBAGE"
+          ]
+        }
+      },
+      "History": {
+        icon: "🏛️",
+        subcategories: {
+          "UK Prime Ministers": [
+            "CHURCHILL", "THATCHER", "BLAIR", "CAMERON", "JOHNSON",
+            "ATTLEE", "WILSON", "HEATH", "MAJOR", "BROWN"
+          ],
+          "Ancient Civilisations": [
+            "EGYPT", "GREECE", "ROME", "BABYLON", "PERSIA",
+            "CARTHAGE", "ASSYRIA", "PHOENICIA", "SPARTA", "ATHENS"
+          ],
+          "Famous Philosophers": [
+            "SOCRATES", "ARISTOTLE", "PLATO", "NIETZSCHE", "KANT",
+            "DESCARTES", "LOCKE", "HUME", "MARX", "HOBBES"
+          ]
+        }
+      }
+    };
+
+    const ROUND_SIZE = 5;
+    const ROUND_TIME = 60;
+
+    class AlphanumericGame {
+      constructor() {
+        this.currentScreen = 'menu';
+        this.currentDomain = null;
+        this.currentSubcategory = null;
+        this.wordQueue = [];
+        this.currentWord = '';
+        this.score = 0;
+        this.wordsPlayed = 0;
+        this.timeLeft = ROUND_TIME;
+        this.timerInterval = null;
+        this.history = [];
+        this.sessionId = null;
+        this.wordStartTime = null;
+        this.isProcessing = false;
+        
+        this.init();
+        this.bindEvents();
+      }
+      
+      init() {
+        this.renderDomains();
+      }
+      
+      bindEvents() {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'h' && document.activeElement.tagName !== 'INPUT') {
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          if (this.currentScreen === 'game') {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.submit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              this.skip();
+            }
+          } else if (this.currentScreen === 'result') {
+            if (e.key === 'c' || e.key === 'C') {
+              this.showMenu();
+            } else if (e.key === 'p' || e.key === 'P') {
+              this.replay();
+            }
+          } else if (this.currentScreen === 'menu') {
+            if (e.key === 'r' || e.key === 'R') {
+              e.preventDefault();
+              this.startRandom();
+            }
+          }
+        });
+        
+        document.getElementById('answer-input').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.submit();
+          }
+        });
+      }
+      
+      renderDomains() {
+        const grid = document.getElementById('domain-grid');
+        grid.innerHTML = '';
+        
+        for (const [name, data] of Object.entries(GAME_DATA)) {
+          const subCount = Object.keys(data.subcategories).length;
+          const btn = document.createElement('button');
+          btn.className = 'domain-btn';
+          btn.innerHTML = `
+            <div class="icon">${data.icon}</div>
+            <div class="name">${name}</div>
+            <div class="count">${subCount} topics</div>
+          `;
+          btn.onclick = () => this.showSubmenu(name);
+          grid.appendChild(btn);
+        }
+      }
+      
+      showSubmenu(domain) {
+        this.currentDomain = domain;
+        document.getElementById('submenu-title').textContent = domain;
+        
+        const grid = document.getElementById('subcategory-grid');
+        grid.innerHTML = '';
+        
+        const subcategories = GAME_DATA[domain].subcategories;
+        for (const [name, words] of Object.entries(subcategories)) {
+          const btn = document.createElement('button');
+          btn.className = 'subcategory-btn';
+          btn.textContent = `${name} (${words.length})`;
+          btn.onclick = () => this.startGame(domain, name);
+          grid.appendChild(btn);
+        }
+        
+        this.showScreen('submenu');
+      }
+      
+      showMenu() {
+        this.currentDomain = null;
+        this.currentSubcategory = null;
+        this.showScreen('menu');
+      }
+      
+      showScreen(screen) {
+        this.currentScreen = screen;
+        document.getElementById('menu-screen').classList.toggle('hidden', screen !== 'menu');
+        document.getElementById('submenu-screen').classList.toggle('hidden', screen !== 'submenu');
+        document.getElementById('game-screen').classList.toggle('hidden', screen !== 'game');
+        document.getElementById('result-screen').classList.toggle('hidden', screen !== 'result');
+      }
+      
+      startRandom() {
+        const domains = Object.keys(GAME_DATA);
+        const randomDomain = domains[Math.floor(Math.random() * domains.length)];
+        const subcategories = Object.keys(GAME_DATA[randomDomain].subcategories);
+        const randomSubcategory = subcategories[Math.floor(Math.random() * subcategories.length)];
+        this.startGame(randomDomain, randomSubcategory);
+      }
+      
+      startGame(domain, subcategory) {
+        this.currentDomain = domain;
+        this.currentSubcategory = subcategory;
+        this.score = 0;
+        this.wordsPlayed = 0;
+        this.timeLeft = ROUND_TIME;
+        this.history = [];
+        this.isProcessing = false;
+        
+        // Get words and shuffle
+        const words = [...GAME_DATA[domain].subcategories[subcategory]];
+        this.shuffleArray(words);
+        this.wordQueue = words.slice(0, ROUND_SIZE);
+        
+        // Start session logging
+        this.sessionId = ActivityLogger.startSession('alphanumeric', {
+          domain,
+          subcategory,
+          totalWords: this.wordQueue.length
+        });
+        
+        document.getElementById('category-label').textContent = subcategory;
+        document.getElementById('score-display').textContent = '0';
+        
+        this.showScreen('game');
+        this.startTimer();
+        this.nextWord();
+      }
+      
+      shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+      }
+      
+      startTimer() {
+        this.updateTimerDisplay();
+        this.timerInterval = setInterval(() => {
+          this.timeLeft--;
+          this.updateTimerDisplay();
+          if (this.timeLeft <= 0) {
+            this.endGame();
+          }
+        }, 1000);
+      }
+      
+      updateTimerDisplay() {
+        document.getElementById('timer-display').textContent = this.timeLeft;
+      }
+      
+      nextWord() {
+        this.isProcessing = false;
+        
+        if (this.wordQueue.length === 0 || this.wordsPlayed >= ROUND_SIZE) {
+          this.endGame();
+          return;
+        }
+        
+        this.currentWord = this.wordQueue.shift();
+        this.wordStartTime = Date.now();
+        this.wordsPlayed++;
+        
+        document.getElementById('round-display').textContent = `${this.wordsPlayed}/${ROUND_SIZE}`;
+        this.renderCode(this.currentWord);
+        
+        const input = document.getElementById('answer-input');
+        input.value = '';
+        input.focus();
+        
+        document.getElementById('feedback').textContent = '';
+      }
+      
+      letterToNumber(letter) {
+        const upper = letter.toUpperCase();
+        if (upper >= 'A' && upper <= 'Z') {
+          return upper.charCodeAt(0) - 64;
+        }
+        return null;
+      }
+      
+      renderCode(phrase) {
+        const display = document.getElementById('code-display');
+        display.innerHTML = '';
+        
+        const words = phrase.split(' ');
+        
+        for (const word of words) {
+          const wordDiv = document.createElement('div');
+          wordDiv.className = 'code-word';
+          
+          for (const char of word) {
+            const num = this.letterToNumber(char);
+            if (num !== null) {
+              const box = document.createElement('div');
+              box.className = 'code-box';
+              box.textContent = num;
+              wordDiv.appendChild(box);
+            }
+          }
+          
+          display.appendChild(wordDiv);
+        }
+      }
+      
+      normalizeAnswer(str) {
+        return str.toUpperCase().replace(/[^A-Z]/g, '');
+      }
+      
+      submit() {
+        if (this.isProcessing) return;
+        
+        const input = document.getElementById('answer-input');
+        const answer = input.value.trim();
+        
+        if (!answer) return;
+        
+        this.isProcessing = true;
+        
+        const normalizedAnswer = this.normalizeAnswer(answer);
+        const normalizedCorrect = this.normalizeAnswer(this.currentWord);
+        const isCorrect = normalizedAnswer === normalizedCorrect;
+        
+        const reactionTimeMs = this.wordStartTime ? Date.now() - this.wordStartTime : null;
+        
+        // Log action
+        ActivityLogger.logAction(this.sessionId, 'alphanumeric', 'guess', {
+          answer: answer,
+          correctAnswer: this.currentWord,
+          correct: isCorrect,
+          reactionTimeMs
+        });
+        
+        if (isCorrect) {
+          this.score++;
+          document.getElementById('score-display').textContent = this.score;
+          this.showFeedback('✓ Correct!', true);
+        } else {
+          this.showFeedback(`✗ ${this.currentWord}`, false);
+        }
+        
+        this.history.push({
+          word: this.currentWord,
+          answer: answer,
+          correct: isCorrect
+        });
+        
+        setTimeout(() => this.nextWord(), isCorrect ? 500 : 1500);
+      }
+      
+      skip() {
+        if (this.isProcessing) return;
+        this.isProcessing = true;
+        
+        ActivityLogger.logAction(this.sessionId, 'alphanumeric', 'skip', {
+          correctAnswer: this.currentWord
+        });
+        
+        this.showFeedback(`Skipped: ${this.currentWord}`, false);
+        
+        this.history.push({
+          word: this.currentWord,
+          answer: '(skipped)',
+          correct: false
+        });
+        
+        setTimeout(() => this.nextWord(), 1500);
+      }
+      
+      showFeedback(message, isCorrect) {
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = message;
+        feedback.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
+      }
+      
+      endGame() {
+        clearInterval(this.timerInterval);
+        
+        // Log session end
+        ActivityLogger.endSession(this.sessionId, 'alphanumeric', {
+          won: this.score > 0,
+          score: this.score,
+          totalWords: this.wordsPlayed,
+          domain: this.currentDomain,
+          subcategory: this.currentSubcategory
+        });
+        
+        document.getElementById('final-score').textContent = this.score;
+        document.getElementById('final-total').textContent = this.wordsPlayed;
+        
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+        
+        for (const item of this.history) {
+          const div = document.createElement('div');
+          div.className = 'history-item ' + (item.correct ? 'correct' : 'incorrect');
+          div.innerHTML = `
+            <div class="history-answer">${item.correct ? '✓' : '✗'} ${item.word}</div>
+            <div class="history-code">Your answer: ${item.answer}</div>
+          `;
+          historyList.appendChild(div);
+        }
+        
+        this.showScreen('result');
+      }
+      
+      replay() {
+        if (this.currentDomain && this.currentSubcategory) {
+          this.startGame(this.currentDomain, this.currentSubcategory);
+        } else {
+          this.startRandom();
+        }
+      }
+    }
+
+    const app = new AlphanumericGame();
+  </script>
+</body>
+</html>
