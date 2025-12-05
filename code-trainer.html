@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Trainer – Learn A=1 to Z=26</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
+  <style>
+    .game {
+      max-width: 800px;
+    }
+    
+    .trainer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .code-display {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      background: #1a1a1b;
+      border: 2px solid #3a3a3c;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      min-height: 120px;
+      width: 100%;
+      max-width: 600px;
+      position: relative;
+    }
+    
+    .letter-row, .number-row {
+      display: flex;
+      flex-wrap: wrap;
+      min-height: 2.5rem;
+      line-height: 1;
+    }
+    
+    .letter-row {
+      color: var(--accent);
+      border-bottom: 1px solid #3a3a3c;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .number-row {
+      color: #7dd3fc;
+    }
+    
+    .char-cell {
+      width: 2ch;
+      text-align: center;
+      display: inline-block;
+    }
+    
+    .char-cell.space {
+      color: #565758;
+    }
+    
+    .num-cell {
+      width: 2ch;
+      text-align: center;
+      display: inline-block;
+      font-size: 1rem;
+      vertical-align: top;
+      padding-top: 0.25rem;
+    }
+    
+    .num-cell.space {
+      color: #565758;
+    }
+    
+    .input-section {
+      width: 100%;
+      max-width: 600px;
+    }
+    
+    .text-input {
+      width: 100%;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: 1rem;
+      background: #2d2d30;
+      border: 2px solid #538d4e;
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      text-transform: uppercase;
+    }
+    
+    .text-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(83, 141, 78, 0.3);
+    }
+    
+    .text-input::placeholder {
+      color: #565758;
+      text-transform: none;
+    }
+    
+    .reference-section {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 600px;
+    }
+    
+    .reference-toggle {
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: #818384;
+      cursor: pointer;
+      font-size: 0.9rem;
+      width: 100%;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    
+    .reference-toggle:hover {
+      background: #2d2d30;
+      color: var(--accent);
+    }
+    
+    .reference-toggle .arrow {
+      transition: transform 0.2s;
+    }
+    
+    .reference-toggle.open .arrow {
+      transform: rotate(180deg);
+    }
+    
+    .reference-grid {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+    }
+    
+    .reference-grid.show {
+      display: grid;
+    }
+    
+    .ref-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.5rem;
+      background: #2d2d30;
+      border-radius: 6px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    
+    .ref-letter {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .ref-number {
+      font-size: 0.85rem;
+      color: #7dd3fc;
+    }
+    
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      background: #1a1a1b;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .stat-label {
+      color: #818384;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .stat-value {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    
+    .clear-btn {
+      margin-top: 1rem;
+      padding: 0.5rem 1.5rem;
+      background: #2d2d30;
+      border: 1px solid #3a3a3c;
+      border-radius: 6px;
+      color: #818384;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+    
+    .clear-btn:hover {
+      background: #3a3a3c;
+      color: var(--accent);
+    }
+    
+    .hint-text {
+      color: #565758;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <header>
+      <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
+      <h1>Code Trainer</h1>
+      <small>Learn the A=1 to Z=26 alphabet code</small>
+    </header>
+
+    <main>
+      <div class="trainer-container">
+        <div class="input-section">
+          <input 
+            type="text" 
+            id="textInput" 
+            class="text-input" 
+            placeholder="Type here..."
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+          />
+          <p class="hint-text">Type any text to see its numeric code instantly</p>
+        </div>
+        
+        <div class="code-display">
+          <div class="letter-row" id="letterRow"></div>
+          <div class="number-row" id="numberRow"></div>
+        </div>
+        
+        <button class="clear-btn" id="clearBtn">Clear</button>
+        
+        <div class="stats-bar">
+          <div class="stat">
+            <span class="stat-label">Characters</span>
+            <span class="stat-value" id="charCount">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Letters</span>
+            <span class="stat-value" id="letterCount">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Code Sum</span>
+            <span class="stat-value" id="codeSum">0</span>
+          </div>
+        </div>
+        
+        <div class="reference-section">
+          <button class="reference-toggle" id="refToggle">
+            <span>📖 Reference Chart</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="reference-grid" id="refGrid"></div>
+        </div>
+      </div>
+      
+      <div class="keyboard-hints">
+        <span><span class="key-hint">H</span> Home</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('textInput');
+    const letterRow = document.getElementById('letterRow');
+    const numberRow = document.getElementById('numberRow');
+    const charCount = document.getElementById('charCount');
+    const letterCount = document.getElementById('letterCount');
+    const codeSum = document.getElementById('codeSum');
+    const clearBtn = document.getElementById('clearBtn');
+    const refToggle = document.getElementById('refToggle');
+    const refGrid = document.getElementById('refGrid');
+
+    // Generate reference grid
+    for (let i = 0; i < 26; i++) {
+      const letter = String.fromCharCode(65 + i);
+      const number = i + 1;
+      const item = document.createElement('div');
+      item.className = 'ref-item';
+      item.innerHTML = `<span class="ref-letter">${letter}</span><span class="ref-number">${number}</span>`;
+      refGrid.appendChild(item);
+    }
+
+    // Toggle reference grid
+    refToggle.addEventListener('click', function() {
+      refToggle.classList.toggle('open');
+      refGrid.classList.toggle('show');
+    });
+
+    // Convert letter to number (A=1, B=2, etc.)
+    function letterToNumber(char) {
+      const upper = char.toUpperCase();
+      const code = upper.charCodeAt(0);
+      if (code >= 65 && code <= 90) {
+        return code - 64;
+      }
+      return null;
+    }
+
+    // Update display
+    function updateDisplay() {
+      const text = textInput.value.toUpperCase();
+      
+      letterRow.innerHTML = '';
+      numberRow.innerHTML = '';
+      
+      let letters = 0;
+      let sum = 0;
+      
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const num = letterToNumber(char);
+        
+        // Letter cell
+        const letterCell = document.createElement('span');
+        letterCell.className = 'char-cell';
+        if (char === ' ') {
+          letterCell.classList.add('space');
+          letterCell.textContent = '␣';
+        } else {
+          letterCell.textContent = char;
+        }
+        letterRow.appendChild(letterCell);
+        
+        // Number cell
+        const numCell = document.createElement('span');
+        numCell.className = 'num-cell';
+        if (num !== null) {
+          numCell.textContent = num;
+          letters++;
+          sum += num;
+        } else if (char === ' ') {
+          numCell.classList.add('space');
+          numCell.textContent = '·';
+        } else {
+          numCell.textContent = '–';
+        }
+        numberRow.appendChild(numCell);
+      }
+      
+      charCount.textContent = text.length;
+      letterCount.textContent = letters;
+      codeSum.textContent = sum;
+    }
+
+    // Event listeners
+    textInput.addEventListener('input', updateDisplay);
+    
+    clearBtn.addEventListener('click', function() {
+      textInput.value = '';
+      updateDisplay();
+      textInput.focus();
+    });
+
+    // Keyboard shortcut for home
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'h' || e.key === 'H') {
+        if (document.activeElement !== textInput) {
+          window.location.href = 'index.html';
+        }
+      }
+    });
+
+    // Focus input on load
+    textInput.focus();
+    
+    // Activity logging
+    ActivityLogger.startSession('code-trainer', {});
+  </script>
+</body>
+</html>
