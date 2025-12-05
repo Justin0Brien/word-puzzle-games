@@ -6,14 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="common.css" />
   <script src="activity-logger.js"></script>
-  <!-- React and Babel for JSX -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
   <style>
     .game { max-width: 500px; }
     
-    /* Sudoku-specific styles */
     .sudoku-header {
       display: flex;
       justify-content: space-between;
@@ -49,13 +47,8 @@
       color: var(--accent);
     }
     
-    .sudoku-stat-value.error {
-      color: #ef4444;
-    }
-    
-    .sudoku-stat-value.timer {
-      color: #fbbf24;
-    }
+    .sudoku-stat-value.error { color: #ef4444; }
+    .sudoku-stat-value.timer { color: #fbbf24; }
     
     .difficulty-badge {
       font-size: 0.7rem;
@@ -67,9 +60,7 @@
       letter-spacing: 0.05em;
     }
     
-    .sudoku-board-wrapper {
-      position: relative;
-    }
+    .sudoku-board-wrapper { position: relative; }
     
     .sudoku-board {
       display: grid;
@@ -99,41 +90,16 @@
       user-select: none;
     }
     
-    /* 3x3 box borders */
     .sudoku-cell.border-right { border-right: 2px solid #565758; }
     .sudoku-cell.border-bottom { border-bottom: 2px solid #565758; }
+    .sudoku-cell.initial { color: var(--accent); }
+    .sudoku-cell.user-input { color: #7dd3fc; }
+    .sudoku-cell.selected { background: #538d4e !important; color: #fff; }
+    .sudoku-cell.related { background: #2d2d30; }
+    .sudoku-cell.same-value { background: #3a5a9c; }
+    .sudoku-cell.error { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+    .sudoku-cell:hover:not(.selected) { background: #3a3a3c; }
     
-    .sudoku-cell.initial {
-      color: var(--accent);
-    }
-    
-    .sudoku-cell.user-input {
-      color: #7dd3fc;
-    }
-    
-    .sudoku-cell.selected {
-      background: #538d4e !important;
-      color: #fff;
-    }
-    
-    .sudoku-cell.related {
-      background: #2d2d30;
-    }
-    
-    .sudoku-cell.same-value {
-      background: #3a5a9c;
-    }
-    
-    .sudoku-cell.error {
-      background: rgba(239, 68, 68, 0.3);
-      color: #ef4444;
-    }
-    
-    .sudoku-cell:hover:not(.selected) {
-      background: #3a3a3c;
-    }
-    
-    /* Notes (pencil marks) */
     .cell-notes {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -151,7 +117,6 @@
       font-weight: 500;
     }
     
-    /* Pause overlay */
     .pause-overlay {
       position: absolute;
       inset: 0;
@@ -172,7 +137,6 @@
       border-radius: 999px;
     }
     
-    /* Controls */
     .sudoku-controls {
       display: flex;
       justify-content: center;
@@ -207,17 +171,13 @@
       border-color: #538d4e;
     }
     
-    .sudoku-btn-icon {
-      font-size: 1.25rem;
-    }
-    
+    .sudoku-btn-icon { font-size: 1.25rem; }
     .sudoku-btn-label {
       font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     
-    /* Numpad */
     .sudoku-numpad {
       display: grid;
       grid-template-columns: repeat(9, 1fr);
@@ -243,17 +203,9 @@
       transition: all 0.1s;
     }
     
-    .numpad-btn:hover {
-      background: #2d2d30;
-      border-color: #538d4e;
-    }
+    .numpad-btn:hover { background: #2d2d30; border-color: #538d4e; }
+    .numpad-btn:active { background: #538d4e; color: #fff; }
     
-    .numpad-btn:active {
-      background: #538d4e;
-      color: #fff;
-    }
-    
-    /* Modal styles */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -321,25 +273,14 @@
       color: var(--accent);
     }
     
-    /* Result modal */
-    .result-icon {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-    }
-    
+    .result-icon { font-size: 3rem; margin-bottom: 0.5rem; }
     .result-won { color: #538d4e; }
     .result-lost { color: #ef4444; }
     
     @media (max-width: 480px) {
-      .sudoku-cell {
-        font-size: 1.2rem;
-      }
-      .numpad-btn {
-        font-size: 1.25rem;
-      }
-      .cell-note {
-        font-size: 0.4rem;
-      }
+      .sudoku-cell { font-size: 1.2rem; }
+      .numpad-btn { font-size: 1.25rem; }
+      .cell-note { font-size: 0.4rem; }
     }
   </style>
 </head>
@@ -349,41 +290,35 @@
   <script type="text/babel">
     const { useState, useEffect, useCallback } = React;
     
-    /**
-     * SUDOKU LOGIC UTILITIES
-     */
     const BLANK = 0;
 
-    // Check if placing num at board[row][col] is valid
-    const isValid = (board, row, col, num) => {
-      // Check row
+    function isValidPlacement(board, row, col, num) {
       for (let x = 0; x < 9; x++) {
         if (board[row][x] === num && x !== col) return false;
       }
-      // Check col
       for (let x = 0; x < 9; x++) {
         if (board[x][col] === num && x !== row) return false;
       }
-      // Check 3x3 box
       const startRow = 3 * Math.floor(row / 3);
       const startCol = 3 * Math.floor(col / 3);
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
-          if (board[startRow + i][startCol + j] === num && (startRow + i !== row || startCol + j !== col)) {
+          const r = startRow + i;
+          const c = startCol + j;
+          if (board[r][c] === num && (r !== row || c !== col)) {
             return false;
           }
         }
       }
       return true;
-    };
+    }
 
-    // Solve the board using backtracking
-    const solveBoard = (board) => {
+    function solveBoard(board) {
       for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
           if (board[row][col] === BLANK) {
             for (let num = 1; num <= 9; num++) {
-              if (isValid(board, row, col, num)) {
+              if (isValidPlacement(board, row, col, num)) {
                 board[row][col] = num;
                 if (solveBoard(board)) return true;
                 board[row][col] = BLANK;
@@ -394,44 +329,43 @@
         }
       }
       return true;
-    };
+    }
 
-    const isSafeInBox = (board, rowStart, colStart, num) => {
+    function isSafeInBox(board, rowStart, colStart, num) {
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
           if (board[rowStart + i][colStart + j] === num) return false;
         }
       }
       return true;
-    };
+    }
 
-    const fillBox = (board, row, col) => {
-      let num;
+    function fillBox(board, row, col) {
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
+          let num;
           do {
             num = Math.floor(Math.random() * 9) + 1;
           } while (!isSafeInBox(board, row, col, num));
           board[row + i][col + j] = num;
         }
       }
-    };
+    }
 
-    // Generate a new valid Sudoku puzzle
-    const generateSudoku = (difficulty = 'Medium') => {
-      const board = Array(9).fill().map(() => Array(9).fill(BLANK));
+    function generateSudoku(difficulty) {
+      const board = [];
+      for (let i = 0; i < 9; i++) {
+        board.push([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+      }
 
-      // Fill diagonal 3x3 boxes
       for (let i = 0; i < 9; i += 3) {
         fillBox(board, i, i);
       }
 
-      // Solve the rest
       solveBoard(board);
       
-      const solution = board.map(row => [...row]);
+      const solution = board.map(function(row) { return row.slice(); });
 
-      // Remove digits based on difficulty
       let attempts = difficulty === 'Easy' ? 30 : difficulty === 'Medium' ? 45 : 56;
       
       while (attempts > 0) {
@@ -445,17 +379,34 @@
         attempts--;
       }
 
-      return { initial: board, solution };
-    };
+      return { initial: board, solution: solution };
+    }
 
-    /**
-     * MAIN COMPONENT
-     */
     function SudokuApp() {
-      const [board, setBoard] = useState(Array(9).fill().map(() => Array(9).fill(BLANK)));
-      const [initialBoard, setInitialBoard] = useState(Array(9).fill().map(() => Array(9).fill(BLANK)));
-      const [solution, setSolution] = useState(Array(9).fill().map(() => Array(9).fill(BLANK)));
-      const [notes, setNotes] = useState(Array(9).fill().map(() => Array(9).fill().map(() => new Set())));
+      function createEmptyBoard() {
+        const b = [];
+        for (let i = 0; i < 9; i++) {
+          b.push([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        }
+        return b;
+      }
+      
+      function createEmptyNotes() {
+        const n = [];
+        for (let i = 0; i < 9; i++) {
+          const row = [];
+          for (let j = 0; j < 9; j++) {
+            row.push(new Set());
+          }
+          n.push(row);
+        }
+        return n;
+      }
+      
+      const [board, setBoard] = useState(createEmptyBoard);
+      const [initialBoard, setInitialBoard] = useState(createEmptyBoard);
+      const [solution, setSolution] = useState(createEmptyBoard);
+      const [notes, setNotes] = useState(createEmptyNotes);
       
       const [selectedCell, setSelectedCell] = useState(null);
       const [mistakes, setMistakes] = useState(0);
@@ -465,16 +416,17 @@
       const [timer, setTimer] = useState(0);
       const [isPaused, setIsPaused] = useState(false);
       const [showNewGameModal, setShowNewGameModal] = useState(true);
-      
-      // Activity logging
       const [sessionId, setSessionId] = useState(null);
 
-      const startNewGame = (diff) => {
-        const { initial, solution: solved } = generateSudoku(diff);
-        setInitialBoard(initial.map(r => [...r]));
-        setBoard(initial.map(r => [...r]));
+      function startNewGame(diff) {
+        const result = generateSudoku(diff);
+        const initial = result.initial;
+        const solved = result.solution;
+        
+        setInitialBoard(initial.map(function(r) { return r.slice(); }));
+        setBoard(initial.map(function(r) { return r.slice(); }));
         setSolution(solved);
-        setNotes(Array(9).fill().map(() => Array(9).fill().map(() => new Set())));
+        setNotes(createEmptyNotes());
         setMistakes(0);
         setTimer(0);
         setGameStatus('playing');
@@ -483,41 +435,42 @@
         setShowNewGameModal(false);
         setSelectedCell(null);
         
-        // Start activity logging
         const sid = ActivityLogger.startSession('sudoku', { difficulty: diff });
         setSessionId(sid);
-      };
+      }
 
-      // Timer Effect
-      useEffect(() => {
+      useEffect(function() {
         let interval;
         if (gameStatus === 'playing' && !isPaused) {
-          interval = setInterval(() => {
-            setTimer(t => t + 1);
+          interval = setInterval(function() {
+            setTimer(function(t) { return t + 1; });
           }, 1000);
         }
-        return () => clearInterval(interval);
+        return function() { clearInterval(interval); };
       }, [gameStatus, isPaused]);
 
-      const formatTime = (seconds) => {
+      function formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-      };
+        return mins + ':' + (secs < 10 ? '0' : '') + secs;
+      }
 
-      const handleCellClick = (r, c) => {
+      function handleCellClick(r, c) {
         if (gameStatus !== 'playing' || isPaused) return;
-        setSelectedCell({ r, c });
-      };
+        setSelectedCell({ r: r, c: c });
+      }
 
-      const handleNumberInput = useCallback((num) => {
+      const handleNumberInput = useCallback(function(num) {
         if (gameStatus !== 'playing' || isPaused || !selectedCell) return;
-        const { r, c } = selectedCell;
+        const r = selectedCell.r;
+        const c = selectedCell.c;
 
         if (initialBoard[r][c] !== BLANK) return;
 
         if (isNoteMode) {
-          const newNotes = notes.map(row => row.map(cell => new Set(cell)));
+          const newNotes = notes.map(function(row) {
+            return row.map(function(cell) { return new Set(cell); });
+          });
           const cellNotes = newNotes[r][c];
           if (cellNotes.has(num)) {
             cellNotes.delete(num);
@@ -528,7 +481,7 @@
         } else {
           if (board[r][c] === num) return;
 
-          const newBoard = board.map(row => [...row]);
+          const newBoard = board.map(function(row) { return row.slice(); });
           newBoard[r][c] = num;
           setBoard(newBoard);
 
@@ -543,25 +496,24 @@
             if (newMistakes >= 3) {
               setGameStatus('lost');
               ActivityLogger.endSession(sessionId, 'sudoku', {
-                won: false, difficulty, time: timer, mistakes: newMistakes
+                won: false, difficulty: difficulty, time: timer, mistakes: newMistakes
               });
             }
           } else {
-            // Correct move
-            const newNotes = notes.map(row => row.map(cell => new Set(cell)));
-            // Clear notes in row/col/box
-            for(let k=0; k<9; k++) newNotes[r][k].delete(num);
-            for(let k=0; k<9; k++) newNotes[k][c].delete(num);
+            const newNotes = notes.map(function(row) {
+              return row.map(function(cell) { return new Set(cell); });
+            });
+            for (let k = 0; k < 9; k++) newNotes[r][k].delete(num);
+            for (let k = 0; k < 9; k++) newNotes[k][c].delete(num);
             const startRow = 3 * Math.floor(r / 3);
             const startCol = 3 * Math.floor(c / 3);
-            for(let i=0; i<3; i++) {
-              for(let j=0; j<3; j++) {
-                newNotes[startRow+i][startCol+j].delete(num);
+            for (let i = 0; i < 3; i++) {
+              for (let j = 0; j < 3; j++) {
+                newNotes[startRow + i][startCol + j].delete(num);
               }
             }
             setNotes(newNotes);
             
-            // Check win
             let isComplete = true;
             for (let i = 0; i < 9 && isComplete; i++) {
               for (let j = 0; j < 9 && isComplete; j++) {
@@ -573,38 +525,41 @@
             if (isComplete) {
               setGameStatus('won');
               ActivityLogger.endSession(sessionId, 'sudoku', {
-                won: true, difficulty, time: timer, mistakes
+                won: true, difficulty: difficulty, time: timer, mistakes: mistakes
               });
             }
           }
         }
       }, [gameStatus, isPaused, selectedCell, initialBoard, isNoteMode, notes, board, solution, mistakes, sessionId, difficulty, timer]);
 
-      const handleErase = useCallback(() => {
+      const handleErase = useCallback(function() {
         if (gameStatus !== 'playing' || isPaused || !selectedCell) return;
-        const { r, c } = selectedCell;
+        const r = selectedCell.r;
+        const c = selectedCell.c;
         if (initialBoard[r][c] !== BLANK) return;
 
-        const newBoard = board.map(row => [...row]);
+        const newBoard = board.map(function(row) { return row.slice(); });
         newBoard[r][c] = BLANK;
         setBoard(newBoard);
         
-        // Also clear notes for this cell
-        const newNotes = notes.map(row => row.map(cell => new Set(cell)));
+        const newNotes = notes.map(function(row) {
+          return row.map(function(cell) { return new Set(cell); });
+        });
         newNotes[r][c].clear();
         setNotes(newNotes);
       }, [gameStatus, isPaused, selectedCell, initialBoard, board, notes]);
 
-      const handleHint = () => {
+      function handleHint() {
         if (gameStatus !== 'playing' || isPaused || !selectedCell) return;
-        const { r, c } = selectedCell;
-        if (initialBoard[r][c] !== BLANK || board[r][c] === solution[r][c]) return;
+        const r = selectedCell.r;
+        const c = selectedCell.c;
+        if (initialBoard[r][c] !== BLANK) return;
+        if (board[r][c] === solution[r][c]) return;
         
-        const newBoard = board.map(row => [...row]);
+        const newBoard = board.map(function(row) { return row.slice(); });
         newBoard[r][c] = solution[r][c];
         setBoard(newBoard);
         
-        // Check win after hint
         let isComplete = true;
         for (let i = 0; i < 9 && isComplete; i++) {
           for (let j = 0; j < 9 && isComplete; j++) {
@@ -616,15 +571,13 @@
         if (isComplete) {
           setGameStatus('won');
           ActivityLogger.endSession(sessionId, 'sudoku', {
-            won: true, difficulty, time: timer, mistakes, usedHint: true
+            won: true, difficulty: difficulty, time: timer, mistakes: mistakes, usedHint: true
           });
         }
-      };
+      }
 
-      // Keyboard Support
-      useEffect(() => {
-        const handleKeyDown = (e) => {
-          // Home shortcut
+      useEffect(function() {
+        function handleKeyDown(e) {
           if (e.key === 'h' || e.key === 'H') {
             if (gameStatus === 'won' || gameStatus === 'lost') {
               window.location.href = 'index.html';
@@ -645,26 +598,27 @@
           }
 
           if (e.key === 'n' || e.key === 'N') {
-            setIsNoteMode(m => !m);
+            setIsNoteMode(function(m) { return !m; });
             return;
           }
 
           if (!selectedCell) return;
-          let { r, c } = selectedCell;
+          let r = selectedCell.r;
+          let c = selectedCell.c;
           if (e.key === 'ArrowUp') r = Math.max(0, r - 1);
           if (e.key === 'ArrowDown') r = Math.min(8, r + 1);
           if (e.key === 'ArrowLeft') c = Math.max(0, c - 1);
           if (e.key === 'ArrowRight') c = Math.min(8, c + 1);
-          setSelectedCell({ r, c });
-        };
+          setSelectedCell({ r: r, c: c });
+        }
 
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return function() { window.removeEventListener('keydown', handleKeyDown); };
       }, [selectedCell, gameStatus, isPaused, handleNumberInput, handleErase]);
 
-      const getCellClasses = (r, c) => {
+      function getCellClasses(r, c) {
         const isInitial = initialBoard[r][c] !== BLANK;
-        const isSelected = selectedCell?.r === r && selectedCell?.c === c;
+        const isSelected = selectedCell && selectedCell.r === r && selectedCell.c === c;
         const val = board[r][c];
         const isError = !isInitial && val !== BLANK && val !== solution[r][c];
         
@@ -675,15 +629,16 @@
           if (selectedCell.r === r || selectedCell.c === c) isRelated = true;
           const startRow = 3 * Math.floor(selectedCell.r / 3);
           const startCol = 3 * Math.floor(selectedCell.c / 3);
-          if (r >= startRow && r < startRow + 3 && c >= startCol && c < startCol + 3) isRelated = true;
+          if (r >= startRow && r < startRow + 3 && c >= startCol && c < startCol + 3) {
+            isRelated = true;
+          }
           
           const selectedVal = board[selectedCell.r][selectedCell.c];
           if (selectedVal !== BLANK && val === selectedVal) isSameValue = true;
         }
 
-        let classes = ['sudoku-cell'];
+        const classes = ['sudoku-cell'];
         
-        // 3x3 box borders
         if (c === 2 || c === 5) classes.push('border-right');
         if (r === 2 || r === 5) classes.push('border-bottom');
 
@@ -696,7 +651,28 @@
         else if (val !== BLANK) classes.push('user-input');
 
         return classes.join(' ');
-      };
+      }
+
+      function renderCell(r, c) {
+        const val = board[r][c];
+        const cellNotes = notes[r][c];
+        
+        if (val !== BLANK) {
+          return val;
+        }
+        
+        if (cellNotes.size > 0) {
+          return (
+            <div className="cell-notes">
+              {[1,2,3,4,5,6,7,8,9].map(function(n) {
+                return <div key={n} className="cell-note">{cellNotes.has(n) ? n : ''}</div>;
+              })}
+            </div>
+          );
+        }
+        
+        return null;
+      }
 
       return (
         <div className="game">
@@ -707,13 +683,12 @@
           </header>
 
           <main>
-            {/* Stats Bar */}
             <div className="sudoku-header">
               <span className="difficulty-badge">{difficulty}</span>
               <div className="sudoku-stats">
                 <div className="sudoku-stat">
                   <span className="sudoku-stat-label">Mistakes</span>
-                  <span className={`sudoku-stat-value ${mistakes >= 3 ? 'error' : ''}`}>{mistakes}/3</span>
+                  <span className={'sudoku-stat-value' + (mistakes >= 3 ? ' error' : '')}>{mistakes}/3</span>
                 </div>
                 <div className="sudoku-stat">
                   <span className="sudoku-stat-label">Time</span>
@@ -721,7 +696,7 @@
                 </div>
                 <button 
                   className="sudoku-btn" 
-                  onClick={() => setIsPaused(!isPaused)}
+                  onClick={function() { setIsPaused(!isPaused); }}
                   style={{ flexDirection: 'row', minWidth: 'auto', padding: '0.25rem 0.5rem' }}
                 >
                   <span>{isPaused ? '▶️' : '⏸️'}</span>
@@ -729,42 +704,32 @@
               </div>
             </div>
 
-            {/* Game Board */}
             <div className="sudoku-board-wrapper">
               <div className="sudoku-board">
-                {board.map((row, r) => (
-                  row.map((val, c) => (
-                    <div 
-                      key={`${r}-${c}`} 
-                      className={getCellClasses(r, c)}
-                      onClick={() => handleCellClick(r, c)}
-                    >
-                      {val !== BLANK ? val : (
-                        notes[r][c].size > 0 && (
-                          <div className="cell-notes">
-                            {[1,2,3,4,5,6,7,8,9].map(n => (
-                              <div key={n} className="cell-note">
-                                {notes[r][c].has(n) ? n : ''}
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      )}
-                    </div>
-                  ))
-                ))}
+                {board.map(function(row, r) {
+                  return row.map(function(val, c) {
+                    return (
+                      <div 
+                        key={r + '-' + c} 
+                        className={getCellClasses(r, c)}
+                        onClick={function() { handleCellClick(r, c); }}
+                      >
+                        {renderCell(r, c)}
+                      </div>
+                    );
+                  });
+                })}
               </div>
               
               {isPaused && (
-                <div className="pause-overlay" onClick={() => setIsPaused(false)}>
+                <div className="pause-overlay" onClick={function() { setIsPaused(false); }}>
                   <span className="pause-text">▶️ Resume Game</span>
                 </div>
               )}
             </div>
 
-            {/* Controls */}
             <div className="sudoku-controls">
-              <button className="sudoku-btn" onClick={() => setShowNewGameModal(true)}>
+              <button className="sudoku-btn" onClick={function() { setShowNewGameModal(true); }}>
                 <span className="sudoku-btn-icon">🔄</span>
                 <span className="sudoku-btn-label">New</span>
               </button>
@@ -775,8 +740,8 @@
               </button>
 
               <button 
-                className={`sudoku-btn ${isNoteMode ? 'active' : ''}`}
-                onClick={() => setIsNoteMode(!isNoteMode)}
+                className={'sudoku-btn' + (isNoteMode ? ' active' : '')}
+                onClick={function() { setIsNoteMode(!isNoteMode); }}
               >
                 <span className="sudoku-btn-icon">✏️</span>
                 <span className="sudoku-btn-label">Notes {isNoteMode ? 'ON' : 'OFF'}</span>
@@ -788,17 +753,18 @@
               </button>
             </div>
 
-            {/* Numpad */}
             <div className="sudoku-numpad">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                <button
-                  key={num}
-                  className="numpad-btn"
-                  onClick={() => handleNumberInput(num)}
-                >
-                  {num}
-                </button>
-              ))}
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(function(num) {
+                return (
+                  <button
+                    key={num}
+                    className="numpad-btn"
+                    onClick={function() { handleNumberInput(num); }}
+                  >
+                    {num}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="keyboard-hints">
@@ -809,26 +775,27 @@
             </div>
           </main>
 
-          {/* New Game Modal */}
           {showNewGameModal && (
             <div className="modal-overlay">
               <div className="modal">
                 <h2>New Game</h2>
                 <p>Select difficulty level</p>
                 <div className="modal-btns">
-                  {['Easy', 'Medium', 'Hard'].map(diff => (
-                    <button 
-                      key={diff}
-                      className="modal-btn"
-                      onClick={() => startNewGame(diff)}
-                    >
-                      {diff}
-                    </button>
-                  ))}
+                  {['Easy', 'Medium', 'Hard'].map(function(diff) {
+                    return (
+                      <button 
+                        key={diff}
+                        className="modal-btn"
+                        onClick={function() { startNewGame(diff); }}
+                      >
+                        {diff}
+                      </button>
+                    );
+                  })}
                   {gameStatus !== 'idle' && (
                     <button 
                       className="modal-btn cancel" 
-                      onClick={() => setShowNewGameModal(false)}
+                      onClick={function() { setShowNewGameModal(false); }}
                     >
                       Cancel
                     </button>
@@ -838,23 +805,22 @@
             </div>
           )}
 
-          {/* Game Over Modal */}
           {(gameStatus === 'won' || gameStatus === 'lost') && (
             <div className="modal-overlay">
               <div className="modal">
-                <div className={`result-icon ${gameStatus === 'won' ? 'result-won' : 'result-lost'}`}>
+                <div className={'result-icon ' + (gameStatus === 'won' ? 'result-won' : 'result-lost')}>
                   {gameStatus === 'won' ? '🏆' : '❌'}
                 </div>
                 <h2>{gameStatus === 'won' ? 'Excellent!' : 'Game Over'}</h2>
                 <p>
                   {gameStatus === 'won' 
-                    ? `You solved the ${difficulty} puzzle in ${formatTime(timer)}!` 
+                    ? 'You solved the ' + difficulty + ' puzzle in ' + formatTime(timer) + '!'
                     : 'You made 3 mistakes. Better luck next time!'}
                 </p>
                 <div className="modal-btns">
                   <button 
                     className="modal-btn"
-                    onClick={() => setShowNewGameModal(true)}
+                    onClick={function() { setShowNewGameModal(true); }}
                   >
                     Play Again
                   </button>
