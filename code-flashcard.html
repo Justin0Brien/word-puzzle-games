@@ -87,6 +87,74 @@
       transform: scale(1.02);
     }
     
+    .srs-status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #1a1a1b;
+      border: 1px solid #3a3a3c;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .srs-title {
+      font-size: 0.75rem;
+      color: #818384;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    
+    .srs-boxes {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    
+    .srs-box {
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem 0.25rem;
+      background: #2d2d30;
+      border-radius: 4px;
+    }
+    
+    .srs-box-count {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    
+    .srs-box.box-0 .srs-box-count { color: #ef4444; }
+    .srs-box.box-1 .srs-box-count { color: #f97316; }
+    .srs-box.box-2 .srs-box-count { color: #fbbf24; }
+    .srs-box.box-3 .srs-box-count { color: #a3e635; }
+    .srs-box.box-4 .srs-box-count { color: #538d4e; }
+    
+    .srs-box-label {
+      font-size: 0.6rem;
+      color: #818384;
+      text-transform: uppercase;
+    }
+    
+    .reset-btn {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: 1px solid #3a3a3c;
+      border-radius: 6px;
+      color: #818384;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .reset-btn:hover {
+      background: #2d2d30;
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
     /* Game Screen */
     .progress-bar {
       width: 100%;
@@ -376,7 +444,11 @@
         
         <button class="start-btn" id="startBtn">Start Practice</button>
         
-        <p class="instruction">Press the letter key (A-Z) that matches the number shown</p>
+        <p class="instruction">Cards you struggle with appear more often (Anki-style)</p>
+        
+        <div class="srs-status" id="srsStatus"></div>
+        
+        <button class="reset-btn" id="resetBtn">Reset All Progress</button>
       </div>
 
       <!-- Game Screen -->
@@ -482,18 +554,123 @@
     let isWaiting = false;
     let sessionId = null;
 
-    // Generate random cards
+    // Spaced Repetition System (Anki-like)
+    // Each card has a "box" level 0-4. Lower box = shown more frequently.
+    // Box weights: [16, 8, 4, 2, 1] - box 0 is 16x more likely than box 4
+    const STORAGE_KEY = 'code-flashcard-srs';
+    const MAX_BOX = 4;
+    const BOX_WEIGHTS = [16, 8, 4, 2, 1]; // Higher weight = more likely to appear
+    const SLOW_THRESHOLD = 3000; // 3 seconds considered slow
+    
+    // Load SRS data from localStorage
+    function loadSRSData() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          return JSON.parse(data);
+        }
+      } catch (e) {
+        console.error('Error loading SRS data:', e);
+      }
+      // Default: all cards start in box 2 (middle)
+      const defaultData = {};
+      for (let i = 1; i <= 26; i++) {
+        defaultData[i] = { box: 2, lastSeen: 0, totalCorrect: 0, totalWrong: 0 };
+      }
+      return defaultData;
+    }
+    
+    // Save SRS data to localStorage
+    function saveSRSData(data) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.error('Error saving SRS data:', e);
+      }
+    }
+    
+    let srsData = loadSRSData();
+    
+    // Generate cards using weighted selection based on SRS boxes
     function generateCards(count) {
-      const all = [];
-      for (let i = 1; i <= 26; i++) all.push(i);
+      const selected = [];
+      const available = [];
       
-      // Shuffle
-      for (let i = all.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [all[i], all[j]] = [all[j], all[i]];
+      // Build weighted pool
+      for (let i = 1; i <= 26; i++) {
+        const card = srsData[i];
+        const weight = BOX_WEIGHTS[card.box];
+        // Add card multiple times based on weight
+        for (let w = 0; w < weight; w++) {
+          available.push(i);
+        }
       }
       
-      return all.slice(0, count);
+      // Select cards without immediate repetition
+      const recentlySelected = new Set();
+      
+      while (selected.length < count && available.length > 0) {
+        // Pick random from weighted pool
+        const idx = Math.floor(Math.random() * available.length);
+        const num = available[idx];
+        
+        // Avoid picking the same card twice in a row (if possible)
+        if (recentlySelected.has(num) && selected.length < count - 1) {
+          // Try to find a different card
+          let found = false;
+          for (let attempts = 0; attempts < 10; attempts++) {
+            const altIdx = Math.floor(Math.random() * available.length);
+            const altNum = available[altIdx];
+            if (!recentlySelected.has(altNum)) {
+              selected.push(altNum);
+              recentlySelected.clear();
+              recentlySelected.add(altNum);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            selected.push(num);
+            recentlySelected.clear();
+            recentlySelected.add(num);
+          }
+        } else {
+          selected.push(num);
+          recentlySelected.clear();
+          recentlySelected.add(num);
+        }
+      }
+      
+      return selected;
+    }
+    
+    // Update SRS data after an answer
+    function updateSRS(num, isCorrect, responseTime) {
+      const card = srsData[num];
+      card.lastSeen = Date.now();
+      
+      if (isCorrect && responseTime < SLOW_THRESHOLD) {
+        // Fast correct answer: move up a box (less frequent)
+        card.box = Math.min(MAX_BOX, card.box + 1);
+        card.totalCorrect++;
+      } else if (isCorrect) {
+        // Slow correct answer: stay in same box
+        card.totalCorrect++;
+      } else {
+        // Wrong answer: move to box 0 (most frequent)
+        card.box = 0;
+        card.totalWrong++;
+      }
+      
+      saveSRSData(srsData);
+    }
+    
+    // Reset SRS data
+    function resetSRSData() {
+      for (let i = 1; i <= 26; i++) {
+        srsData[i] = { box: 2, lastSeen: 0, totalCorrect: 0, totalWrong: 0 };
+      }
+      saveSRSData(srsData);
     }
 
     // Convert number to letter
@@ -576,6 +753,9 @@
         isCorrect: isCorrect,
         responseTime: responseTime
       });
+      
+      // Update SRS data for this card
+      updateSRS(num, isCorrect, responseTime);
       
       // Show feedback
       if (isCorrect) {
@@ -690,8 +870,44 @@
     startBtn.addEventListener('click', startGame);
     playAgainBtn.addEventListener('click', startGame);
     backToSetupBtn.addEventListener('click', function() {
+      updateSRSDisplay();
       showScreen(setupScreen);
     });
+    
+    // Reset button
+    const resetBtn = document.getElementById('resetBtn');
+    resetBtn.addEventListener('click', function() {
+      if (confirm('Reset all progress? This will clear your learning history.')) {
+        resetSRSData();
+        updateSRSDisplay();
+      }
+    });
+    
+    // Update SRS status display
+    function updateSRSDisplay() {
+      const srsStatus = document.getElementById('srsStatus');
+      const boxCounts = [0, 0, 0, 0, 0];
+      
+      for (let i = 1; i <= 26; i++) {
+        boxCounts[srsData[i].box]++;
+      }
+      
+      const boxLabels = ['Hard', 'Tricky', 'Learning', 'Good', 'Mastered'];
+      
+      srsStatus.innerHTML = 
+        '<div class="srs-title">📊 Your Progress</div>' +
+        '<div class="srs-boxes">' +
+        boxCounts.map(function(count, idx) {
+          return '<div class="srs-box box-' + idx + '">' +
+            '<div class="srs-box-count">' + count + '</div>' +
+            '<div class="srs-box-label">' + boxLabels[idx] + '</div>' +
+          '</div>';
+        }).join('') +
+        '</div>';
+    }
+    
+    // Initialize SRS display
+    updateSRSDisplay();
 
     // Keyboard input
     document.addEventListener('keydown', function(e) {
