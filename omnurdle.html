@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Omnurdle – Choose Your Word Length</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="common.css" />
+  <script src="activity-logger.js"></script>
+  <style>
+    /* Setup modal */
+    .setup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .setup-modal {
+      background: #1e293b;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 350px;
+      width: 100%;
+      text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .setup-modal h2 {
+      margin: 0 0 1rem;
+      color: var(--text);
+      font-size: 1.25rem;
+    }
+    .length-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .length-btn {
+      width: 48px;
+      height: 48px;
+      font-size: 1.25rem;
+      font-weight: bold;
+      border: 2px solid var(--accent, #38bdf8);
+      background: transparent;
+      color: var(--text);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .length-btn:hover, .length-btn.selected {
+      background: var(--accent, #38bdf8);
+      color: #0f172a;
+    }
+    .start-btn {
+      background: var(--correct);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 0.5rem;
+    }
+    .start-btn:hover {
+      opacity: 0.9;
+    }
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Current game info - use common styles, just override if needed */
+    
+    .setup-label {
+      margin: 0.75rem 0 0.5rem;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+    
+    /* Ensure board has proper sizing */
+    .board {
+      max-width: 350px;
+      width: calc(min(350px, 100vw - 2rem));
+    }
+  </style>
+</head>
+<body>
+  <!-- Setup Modal -->
+  <div class="setup-overlay" id="setupOverlay">
+    <div class="setup-modal">
+      <h2>🎯 Omnurdle</h2>
+      <p class="setup-label">Word length:</p>
+      <div class="length-buttons">
+        <button class="length-btn" data-length="3">3</button>
+        <button class="length-btn" data-length="4">4</button>
+        <button class="length-btn selected" data-length="5">5</button>
+        <button class="length-btn" data-length="6">6</button>
+        <button class="length-btn" data-length="7">7</button>
+      </div>
+      <p class="setup-label">Number of guesses:</p>
+      <div class="length-buttons" id="guessButtons">
+        <button class="length-btn" data-guesses="4">4</button>
+        <button class="length-btn" data-guesses="5">5</button>
+        <button class="length-btn selected" data-guesses="6">6</button>
+        <button class="length-btn" data-guesses="7">7</button>
+        <button class="length-btn" data-guesses="8">8</button>
+      </div>
+      <button class="start-btn" id="startBtn">Start Game</button>
+    </div>
+  </div>
+
+  <div class="game">
+    <header>
+      <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
+      <h1>Omnurdle</h1>
+      <small id="gameSubtitle">Guess the word in six tries</small>
+    </header>
+
+    <main>
+      <div class="game-info" id="gameInfo">
+        <span id="lengthInfo">5 letters</span>
+        <span id="guessInfo">6 guesses</span>
+      </div>
+      <div class="board-wrapper" id="boardWrapper">
+        <div id="board" class="board" aria-label="Game board"></div>
+      </div>
+      <div id="message" class="message" aria-live="polite"></div>
+    </main>
+    
+    <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+    <button id="new-game" type="button">New game</button>
+    <div id="word-info" class="word-info" aria-live="polite"></div>
+    <div id="word-info-entries" class="word-info-entries" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const GAME_NAME = 'Omnurdle';
+    
+    // Game state
+    let MAX_GUESSES = 6;
+    let WORD_LENGTH = 5;
+    let wordList = [];
+    let validWords = new Set();
+    let secretWord = "";
+    let currentRow = 0;
+    let currentCol = 0;
+    let isGameOver = false;
+    let sessionId = null;
+    let guessStartTime = null;
+    let wordData = {};
+
+    const boardEl = document.getElementById("board");
+    const boardWrapperEl = document.getElementById("boardWrapper");
+    const messageEl = document.getElementById("message");
+    const keyboardEl = document.getElementById("keyboard");
+    const newGameBtn = document.getElementById("new-game");
+    const setupOverlay = document.getElementById("setupOverlay");
+    const lengthInfo = document.getElementById("lengthInfo");
+    const guessInfo = document.getElementById("guessInfo");
+    const gameSubtitle = document.getElementById("gameSubtitle");
+    const wordInfoEl = document.getElementById("word-info");
+    const wordInfoEntriesEl = document.getElementById("word-info-entries");
+    
+    // Track word info entries for each row
+    let wordInfoByRow = {};
+    
+    // Calculate row height once board is created
+    let tileHeight = 0;
+    let boardGap = 4; // 0.25rem = 4px
+
+    function centerCurrentRow() {
+      if (!tileHeight) {
+        const firstTile = getTile(0, 0);
+        if (firstTile) {
+          tileHeight = firstTile.offsetHeight;
+          const boardStyle = getComputedStyle(boardEl);
+          boardGap = parseFloat(boardStyle.gap) || 4;
+        }
+      }
+      
+      const rowHeight = tileHeight + boardGap;
+      // Calculate offset to center the current row
+      // We want currentRow to be in the middle of the visible area
+      const offset = currentRow * rowHeight;
+      boardWrapperEl.style.transform = `translateY(-${offset}px)`;
+      
+      // Update fade opacity for rows that are far from current
+      updateRowOpacity();
+    }
+    
+    function updateRowOpacity() {
+      // Fade rows that are more than 2 rows above current
+      for (let r = 0; r < MAX_GUESSES; r++) {
+        for (let c = 0; c < WORD_LENGTH; c++) {
+          const tile = getTile(r, c);
+          if (tile) {
+            // Fade out rows more than 3 rows above current
+            const rowDistance = currentRow - r;
+            if (rowDistance > 3) {
+              tile.dataset.faded = "true";
+            } else {
+              delete tile.dataset.faded;
+            }
+          }
+        }
+      }
+    }
+
+    // Word lists for each length (will be populated from JSON files)
+    const wordLists = {};
+    const wordDataCache = {};
+
+    // Setup UI - Word length buttons
+    const lengthBtns = document.querySelectorAll('.length-btn[data-length]');
+    const guessBtns = document.querySelectorAll('.length-btn[data-guesses]');
+    const startBtn = document.getElementById('startBtn');
+
+    lengthBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        lengthBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        WORD_LENGTH = parseInt(btn.dataset.length);
+      });
+    });
+
+    guessBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        guessBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        MAX_GUESSES = parseInt(btn.dataset.guesses);
+      });
+    });
+
+    startBtn.addEventListener('click', async () => {
+      await loadWordList(WORD_LENGTH);
+      setupOverlay.classList.add('hidden');
+      startNewGame();
+    });
+
+    // Load word list for a specific length
+    async function loadWordList(length) {
+      if (wordLists[length]) {
+        wordList = wordLists[length].answers;
+        validWords = wordLists[length].valid;
+        wordData = wordDataCache[length] || {};
+        return;
+      }
+
+      try {
+        const response = await fetch(`word-data/words${length}.json`);
+        const data = await response.json();
+        
+        // All words in the JSON are valid guesses
+        const allWords = Object.keys(data);
+        
+        // Words with definitions are the answer pool
+        const answerWords = allWords.filter(w => data[w] && data[w].d);
+        
+        wordLists[length] = {
+          answers: answerWords.length > 0 ? answerWords : allWords,
+          valid: new Set(allWords.map(w => w.toUpperCase()))
+        };
+        wordDataCache[length] = data;
+        
+        wordList = wordLists[length].answers;
+        validWords = wordLists[length].valid;
+        wordData = data;
+        
+        console.log(`Loaded ${allWords.length} words for ${length}-letter games (${answerWords.length} with definitions)`);
+      } catch (e) {
+        console.error(`Failed to load words${length}.json:`, e);
+        // Fallback to empty
+        wordList = [];
+        validWords = new Set();
+        wordData = {};
+      }
+    }
+
+    function pickSecretWord() {
+      if (wordList.length === 0) return "ERROR";
+      return wordList[Math.floor(Math.random() * wordList.length)].toUpperCase();
+    }
+
+    function createBoard() {
+      boardEl.innerHTML = "";
+      boardEl.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, 1fr)`;
+      
+      // Set board width based on word length (70px per tile)
+      const tileSize = 62;
+      const gap = 4;
+      const boardWidth = (tileSize * WORD_LENGTH) + (gap * (WORD_LENGTH - 1));
+      boardEl.style.maxWidth = `${boardWidth}px`;
+      boardEl.style.width = `calc(min(${boardWidth}px, 100vw - 2rem))`;
+      
+      for (let r = 0; r < MAX_GUESSES; r++) {
+        for (let c = 0; c < WORD_LENGTH; c++) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          tile.dataset.row = r;
+          tile.dataset.col = c;
+          boardEl.appendChild(tile);
+        }
+      }
+    }
+
+    function getTile(row, col) {
+      return boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function createKeyboard() {
+      const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+      keyboardEl.innerHTML = "";
+
+      rows.forEach((row, ri) => {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "keyboard-row";
+
+        if (ri === 2) {
+          const enter = createKey("ENTER", "Enter");
+          enter.classList.add("wide");
+          rowDiv.appendChild(enter);
+        }
+
+        for (const letter of row) {
+          rowDiv.appendChild(createKey(letter, letter));
+        }
+
+        if (ri === 2) {
+          const back = createKey("Backspace", "⌫");
+          back.classList.add("wide");
+          rowDiv.appendChild(back);
+        }
+
+        keyboardEl.appendChild(rowDiv);
+      });
+    }
+
+    function createKey(key, label) {
+      const btn = document.createElement("button");
+      btn.className = "key";
+      btn.textContent = label;
+      btn.dataset.key = key;
+      btn.addEventListener("click", () => handleKey(key));
+      return btn;
+    }
+
+    function updateKeyboardColours(statuses) {
+      for (const [letter, status] of Object.entries(statuses)) {
+        const key = keyboardEl.querySelector(`[data-key="${letter}"]`);
+        if (key) {
+          if (key.classList.contains("correct")) continue;
+          if (key.classList.contains("present") && status === "absent") continue;
+          key.classList.remove("correct", "present", "absent");
+          key.classList.add(status);
+        }
+      }
+    }
+
+    function showMessage(text) {
+      messageEl.textContent = text;
+    }
+
+    function shakeRow(row) {
+      for (let c = 0; c < WORD_LENGTH; c++) {
+        const tile = getTile(row, c);
+        tile.classList.add("shake");
+        setTimeout(() => tile.classList.remove("shake"), 500);
+      }
+    }
+
+    function handleKey(key) {
+      if (isGameOver) return;
+
+      if (key === "ENTER") {
+        submitGuess();
+      } else if (key === "Backspace") {
+        if (currentCol > 0) {
+          currentCol -= 1;
+          const tile = getTile(currentRow, currentCol);
+          tile.textContent = "";
+          tile.classList.remove("filled");
+        }
+      } else if (/^[A-Z]$/.test(key)) {
+        if (currentCol < WORD_LENGTH) {
+          const tile = getTile(currentRow, currentCol);
+          tile.textContent = key;
+          tile.classList.add("filled");
+          currentCol += 1;
+        }
+      }
+    }
+
+    function submitGuess() {
+      if (currentCol !== WORD_LENGTH) {
+        showMessage("Not enough letters");
+        shakeRow(currentRow);
+        return;
+      }
+
+      let guess = "";
+      for (let c = 0; c < WORD_LENGTH; c++) {
+        guess += getTile(currentRow, c).textContent;
+      }
+
+      if (!validWords.has(guess)) {
+        showMessage("Not in word list");
+        shakeRow(currentRow);
+        return;
+      }
+
+      const reactionTimeMs = guessStartTime ? Date.now() - guessStartTime : null;
+      guessStartTime = Date.now();
+
+      const evaluation = evaluateGuess(guess, secretWord);
+      const letterStatuses = {};
+
+      for (let col = 0; col < WORD_LENGTH; col++) {
+        const tile = getTile(currentRow, col);
+        const status = evaluation[col];
+        tile.classList.add(status, "flip");
+        const letter = guess[col];
+
+        const current = letterStatuses[letter];
+        if (current === "correct") {
+        } else if (current === "present" && status === "absent") {
+        } else {
+          letterStatuses[letter] = status;
+        }
+      }
+
+      updateKeyboardColours(letterStatuses);
+      showWordInfo(guess);
+
+      const isCorrect = guess === secretWord;
+      
+      ActivityLogger.logAction(sessionId, GAME_NAME, 'guess', {
+        guess,
+        correct: isCorrect,
+        evaluation: evaluation.join(','),
+        attemptNumber: currentRow + 1,
+        reactionTimeMs,
+        wordLength: WORD_LENGTH
+      });
+
+      if (isCorrect) {
+        showMessage("Splendid! You've got it.");
+        isGameOver = true;
+        ActivityLogger.endSession(sessionId, GAME_NAME, {
+          won: true,
+          score: MAX_GUESSES - currentRow,
+          attempts: currentRow + 1,
+          targetWord: secretWord,
+          wordLength: WORD_LENGTH
+        });
+        return;
+      }
+
+      currentRow += 1;
+      currentCol = 0;
+      
+      // Smoothly scroll to center the new current row
+      centerCurrentRow();
+
+      if (currentRow >= MAX_GUESSES) {
+        showMessage(`Unlucky – the word was ${secretWord}`);
+        isGameOver = true;
+        ActivityLogger.endSession(sessionId, GAME_NAME, {
+          won: false,
+          score: 0,
+          attempts: MAX_GUESSES,
+          targetWord: secretWord,
+          wordLength: WORD_LENGTH
+        });
+      } else {
+        showMessage("");
+      }
+    }
+
+    function evaluateGuess(guess, secret) {
+      const result = Array(WORD_LENGTH).fill("absent");
+      const secretLetters = secret.split("");
+      const guessLetters = guess.split("");
+
+      const letterCounts = {};
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        const s = secretLetters[i];
+        letterCounts[s] = (letterCounts[s] || 0) + 1;
+      }
+
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (guessLetters[i] === secretLetters[i]) {
+          result[i] = "correct";
+          letterCounts[guessLetters[i]] -= 1;
+        }
+      }
+
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (result[i] === "correct") continue;
+        const letter = guessLetters[i];
+        if (letterCounts[letter] > 0) {
+          result[i] = "present";
+          letterCounts[letter] -= 1;
+        }
+      }
+
+      return result;
+    }
+
+    function showWordInfo(word) {
+      const row = currentRow; // The row that was just guessed
+      const info = wordData[word];
+      
+      // Always update the simple word-info (for mobile/tablet)
+      if (!info) {
+        // Try to fetch from API if not in local data
+        fetchDefinitionFromAPI(word, row);
+        return;
+      }
+      
+      displayWordInfo(word, info, row);
+    }
+    
+    function displayWordInfo(word, info, row) {
+      // Update simple word-info for mobile/tablet
+      let html = '<div class="word-title">' + word + '</div>';
+      if (info.d) {
+        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      }
+      if (info.e) {
+        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      }
+      wordInfoEl.innerHTML = html;
+      
+      // For desktop: create alternating left/right entries
+      if (window.innerWidth >= 1000) {
+        createWordInfoEntry(word, info, row);
+      }
+    }
+    
+    function createWordInfoEntry(word, info, row) {
+      // Remove existing entry for this row if any
+      const existingEntry = wordInfoEntriesEl.querySelector(`[data-row="${row}"]`);
+      if (existingEntry) {
+        existingEntry.remove();
+      }
+      
+      const entry = document.createElement('div');
+      entry.className = 'word-info-entry';
+      entry.dataset.row = row;
+      
+      // Alternate sides: even rows go right, odd rows go left
+      const isRightSide = row % 2 === 0;
+      entry.classList.add(isRightSide ? 'right-side' : 'left-side');
+      
+      let html = '<div class="word-title">' + word + '</div>';
+      if (info.d) {
+        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      }
+      if (info.e) {
+        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      }
+      entry.innerHTML = html;
+      
+      // Position vertically aligned with the row
+      positionWordInfoEntry(entry, row);
+      
+      wordInfoEntriesEl.appendChild(entry);
+      
+      // Trigger fade in
+      requestAnimationFrame(() => {
+        entry.classList.add('visible');
+      });
+      
+      wordInfoByRow[row] = entry;
+    }
+    
+    function positionWordInfoEntry(entry, row) {
+      // Get the row position from the board
+      const firstTile = getTile(row, 0);
+      if (!firstTile) return;
+      
+      const tileRect = firstTile.getBoundingClientRect();
+      const rowCenterY = tileRect.top + (tileRect.height / 2);
+      
+      // Position entry centered on the row
+      entry.style.top = `${rowCenterY}px`;
+      entry.style.transform = 'translateY(-50%)';
+    }
+    
+    function updateWordInfoPositions() {
+      // Update positions of all word info entries
+      for (const [rowStr, entry] of Object.entries(wordInfoByRow)) {
+        const row = parseInt(rowStr);
+        positionWordInfoEntry(entry, row);
+      }
+    }
+    
+    async function fetchDefinitionFromAPI(word, row) {
+      wordInfoEl.innerHTML = `<div class="word-title">${word}</div><div class="definition" style="opacity:0.5">Looking up definition...</div>`;
+      
+      try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+        if (!response.ok) {
+          displayWordInfo(word, { d: '', e: '' }, row);
+          return;
+        }
+        
+        const data = await response.json();
+        if (data && data[0]) {
+          const apiEntry = data[0];
+          let definition = '';
+          let etymology = '';
+          
+          if (apiEntry.meanings && apiEntry.meanings[0] && apiEntry.meanings[0].definitions && apiEntry.meanings[0].definitions[0]) {
+            const meaning = apiEntry.meanings[0];
+            definition = `(${meaning.partOfSpeech}) ${meaning.definitions[0].definition}`;
+          }
+          
+          if (apiEntry.origin) {
+            etymology = apiEntry.origin;
+          }
+          
+          displayWordInfo(word, { d: definition, e: etymology }, row);
+        } else {
+          displayWordInfo(word, { d: '', e: '' }, row);
+        }
+      } catch (e) {
+        displayWordInfo(word, { d: '', e: '' }, row);
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function startNewGame() {
+      secretWord = pickSecretWord();
+      currentRow = 0;
+      currentCol = 0;
+      isGameOver = false;
+      tileHeight = 0; // Reset so it recalculates
+      lengthInfo.textContent = `${WORD_LENGTH} letters`;
+      guessInfo.textContent = `${MAX_GUESSES} guesses`;
+      gameSubtitle.textContent = `Guess the word in ${MAX_GUESSES} tries`;
+      createBoard();
+      createKeyboard();
+      showMessage("Good luck!");
+      wordInfoEl.innerHTML = '';
+      
+      // Clear word info entries
+      wordInfoEntriesEl.innerHTML = '';
+      wordInfoByRow = {};
+      
+      // Center board after layout settles
+      requestAnimationFrame(() => {
+        centerCurrentRow();
+      });
+      
+      sessionId = ActivityLogger.startSession(GAME_NAME, {
+        wordLength: WORD_LENGTH,
+        maxGuesses: MAX_GUESSES
+      });
+      guessStartTime = Date.now();
+    }
+
+    function showSetup() {
+      setupOverlay.classList.remove('hidden');
+    }
+
+    document.addEventListener("keydown", (event) => {
+      // Ignore if setup overlay is showing
+      if (!setupOverlay.classList.contains('hidden')) {
+        if (event.key === 'Enter') {
+          startBtn.click();
+        }
+        return;
+      }
+      
+      const key = event.key;
+      if (key === "Enter") {
+        handleKey("ENTER");
+      } else if (key === "Backspace" || key === "Delete") {
+        handleKey("Backspace");
+      } else if (key.toLowerCase() === "n" && isGameOver) {
+        showSetup();
+      } else if (key.toLowerCase() === "h" && isGameOver) {
+        window.location.href = "index.html";
+      } else {
+        const upper = key.toUpperCase();
+        if (/^[A-Z]$/.test(upper)) {
+          handleKey(upper);
+        }
+      }
+    });
+
+    newGameBtn.addEventListener("click", showSetup);
+
+    // Initialize - show setup modal
+    createBoard();
+    createKeyboard();
+  </script>
+</body>
+</html>

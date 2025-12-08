@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sestle – 6-Letter Word Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="stylesheet" href="common.css" />
   <script src="activity-logger.js"></script>
   <style>
     .board {
       grid-template-columns: repeat(6, 1fr);
-      max-width: 420px;
+      max-width: min(360px, 80vw);
     }
   </style>
 </head>
@@ -18,23 +18,20 @@
     <header>
       <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
       <h1>Sestle</h1>
-      <small>Guess the six-letter British English word in six tries</small>
+      <small>Guess the six-letter word in six tries</small>
     </header>
 
     <main>
-      <div id="board" class="board" aria-label="Game board"></div>
-      <div id="message" class="message" aria-live="polite"></div>
-      <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
-      <button id="new-game" type="button">New game</button>
-      <div class="keyboard-hints">
-        <span><span class="key-hint">Enter</span> Submit</span>
-        <span><span class="key-hint">⌫</span> Delete</span>
-        <span><span class="key-hint">N</span> New game*</span>
-        <span><span class="key-hint">H</span> Home*</span>
-        <span style="width:100%;text-align:center;font-size:0.6rem;">*after game ends</span>
+      <div class="board-wrapper" id="boardWrapper">
+        <div id="board" class="board" aria-label="Game board"></div>
       </div>
-      <div id="word-info" class="word-info" aria-live="polite"></div>
+      <div id="message" class="message" aria-live="polite"></div>
     </main>
+
+    <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+    <button id="new-game" type="button">New game</button>
+    <div id="word-info" class="word-info" aria-live="polite"></div>
+    <div id="word-info-entries" class="word-info-entries" aria-live="polite"></div>
   </div>
 
   <script>
@@ -584,9 +581,45 @@
     const GAME_NAME = 'sestle';
 
     const boardEl = document.getElementById("board");
+    const boardWrapperEl = document.getElementById("boardWrapper");
     const messageEl = document.getElementById("message");
     const keyboardEl = document.getElementById("keyboard");
     const newGameBtn = document.getElementById("new-game");
+    
+    // For board centering
+    let tileHeight = 0;
+    let boardGap = 4;
+
+    function centerCurrentRow() {
+      if (!tileHeight) {
+        const firstTile = getTile(0, 0);
+        if (firstTile) {
+          tileHeight = firstTile.offsetHeight;
+          const boardStyle = getComputedStyle(boardEl);
+          boardGap = parseFloat(boardStyle.gap) || 4;
+        }
+      }
+      const rowHeight = tileHeight + boardGap;
+      const offset = currentRow * rowHeight;
+      boardWrapperEl.style.transform = `translateY(-${offset}px)`;
+      updateRowOpacity();
+    }
+    
+    function updateRowOpacity() {
+      for (let r = 0; r < MAX_GUESSES; r++) {
+        for (let c = 0; c < WORD_LENGTH; c++) {
+          const tile = getTile(r, c);
+          if (tile) {
+            const rowDistance = currentRow - r;
+            if (rowDistance > 3) {
+              tile.dataset.faded = "true";
+            } else {
+              delete tile.dataset.faded;
+            }
+          }
+        }
+      }
+    }
 
     function pickSecretWord() {
       const idx = Math.floor(Math.random() * WORD_LIST.length);
@@ -608,44 +641,37 @@
 
     function createKeyboard() {
       keyboardEl.innerHTML = "";
-      const rows = [
-        "QWERTYUIOP",
-        "ASDFGHJKL",
-        "ZXCVBNM"
-      ];
+      const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 
-      // First row
-      for (const ch of rows[0]) {
-        keyboardEl.appendChild(makeKeyButton(ch));
-      }
+      rows.forEach((row, ri) => {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "keyboard-row";
 
-      // Second row (offset by one empty cell for spacing)
-      const spacer = document.createElement("div");
-      spacer.style.visibility = "hidden";
-      keyboardEl.appendChild(spacer);
-      for (const ch of rows[1]) {
-        keyboardEl.appendChild(makeKeyButton(ch));
-      }
+        if (ri === 2) {
+          const enter = makeKeyButton("ENTER");
+          enter.classList.add("wide");
+          rowDiv.appendChild(enter);
+        }
 
-      // Third row with ENTER and DELETE
-      const enterKey = makeKeyButton("ENTER");
-      enterKey.classList.add("large");
-      keyboardEl.appendChild(enterKey);
+        for (const ch of row) {
+          rowDiv.appendChild(makeKeyButton(ch));
+        }
 
-      for (const ch of rows[2]) {
-        keyboardEl.appendChild(makeKeyButton(ch));
-      }
+        if (ri === 2) {
+          const del = makeKeyButton("DEL");
+          del.classList.add("wide");
+          rowDiv.appendChild(del);
+        }
 
-      const delKey = makeKeyButton("DEL");
-      delKey.classList.add("large");
-      keyboardEl.appendChild(delKey);
+        keyboardEl.appendChild(rowDiv);
+      });
     }
 
     function makeKeyButton(label) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "key";
-      btn.textContent = label === "DEL" ? "⌫" : label;
+      btn.textContent = label === "DEL" ? "⌫" : label === "ENTER" ? "Enter" : label;
       btn.dataset.key = label;
       btn.addEventListener("click", () => handleKey(label));
       return btn;
@@ -779,6 +805,7 @@
       currentRow += 1;
       currentCol = 0;
       guessStartTime = Date.now(); // Reset timer for next guess
+      centerCurrentRow();
 
       if (currentRow >= MAX_GUESSES) {
         showMessage(`Unlucky – the word was ${secretWord}`);
@@ -836,22 +863,50 @@
       .catch(e => console.log('Could not load word data:', e));
 
     const wordInfoEl = document.getElementById("word-info");
+    const wordInfoEntriesEl = document.getElementById("word-info-entries");
+    let wordInfoByRow = {};
 
     function showWordInfo(word) {
+      const row = currentRow;
       const info = wordData[word];
       if (!info) {
         wordInfoEl.innerHTML = '';
         return;
       }
-      
+      displayWordInfo(word, info, row);
+    }
+    
+    function displayWordInfo(word, info, row) {
       let html = '<div class="word-title">' + word + '</div>';
-      if (info.d) {
-        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
-      }
-      if (info.e) {
-        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
-      }
+      if (info.d) html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      if (info.e) html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
       wordInfoEl.innerHTML = html;
+      if (window.innerWidth >= 1000) createWordInfoEntry(word, info, row);
+    }
+    
+    function createWordInfoEntry(word, info, row) {
+      const existing = wordInfoEntriesEl.querySelector(`[data-row="${row}"]`);
+      if (existing) existing.remove();
+      const entry = document.createElement('div');
+      entry.className = 'word-info-entry';
+      entry.dataset.row = row;
+      entry.classList.add(row % 2 === 0 ? 'right-side' : 'left-side');
+      let html = '<div class="word-title">' + word + '</div>';
+      if (info.d) html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      if (info.e) html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      entry.innerHTML = html;
+      positionWordInfoEntry(entry, row);
+      wordInfoEntriesEl.appendChild(entry);
+      requestAnimationFrame(() => entry.classList.add('visible'));
+      wordInfoByRow[row] = entry;
+    }
+    
+    function positionWordInfoEntry(entry, row) {
+      const firstTile = getTile(row, 0);
+      if (!firstTile) return;
+      const tileRect = firstTile.getBoundingClientRect();
+      entry.style.top = `${tileRect.top + tileRect.height / 2}px`;
+      entry.style.transform = 'translateY(-50%)';
     }
     
     function escapeHtml(text) {
@@ -865,10 +920,17 @@
       currentRow = 0;
       currentCol = 0;
       isGameOver = false;
+      tileHeight = 0;
       createBoard();
       createKeyboard();
       showMessage("New game – good luck!");
       wordInfoEl.innerHTML = '';
+      wordInfoEntriesEl.innerHTML = '';
+      wordInfoByRow = {};
+      
+      requestAnimationFrame(() => {
+        centerCurrentRow();
+      });
       
       // Reset logging for new game
       guesses = [];

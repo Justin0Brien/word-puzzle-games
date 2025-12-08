@@ -16,59 +16,114 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .game {
   width: 100%;
   max-width: 540px;
   margin: 0 auto;
-  padding: 0.75rem;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
 }
 
 header {
   text-align: center;
   border-bottom: 1px solid #3a3a3c;
-  padding-bottom: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  flex-shrink: 0;
+  background: var(--bg);
+  z-index: 10;
+  position: relative;
 }
 
 header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 header small {
   display: block;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
+  margin-top: 0.1rem;
+  font-size: 0.65rem;
   color: #aaaaaa;
 }
 
+/* Main game area - between header and keyboard */
 main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  padding-top: 0.5rem;
+  padding-bottom: 8rem; /* Space for fixed keyboard */
+}
+
+/* Game info shown above board */
+.game-info {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  padding: 0.25rem 0;
+  z-index: 5;
+}
+
+.game-info span {
+  background: #1e293b;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+/* Board wrapper for scroll/fade effect */
+.board-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.35s ease-out;
+  will-change: transform;
   flex: 1;
+  justify-content: center;
 }
 
 .board {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.25rem;
   width: 100%;
-  margin: 0.5rem auto;
+}
+
+/* Row opacity transitions for fade effect */
+.board .tile {
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, opacity 0.35s ease;
+}
+
+/* Rows will have data-opacity set by JS for fade effect */
+.board .tile[data-faded="true"] {
+  opacity: 0;
 }
 
 .tile {
@@ -79,12 +134,12 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: clamp(1rem, 5vmin, 2rem);
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text);
   user-select: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, opacity 0.3s ease;
 }
 
 .tile.filled {
@@ -148,32 +203,71 @@ main {
 }
 
 .message {
-  min-height: 1.25rem;
+  min-height: 1rem;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: var(--accent);
+  flex-shrink: 0;
+  padding: 0.15rem 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
+/* Keyboard fixed at bottom */
 .keyboard {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  padding: 0.5rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  touch-action: manipulation;
+}
+
+.keyboard-inner {
+  display: flex;
+  flex-direction: column;
   gap: 0.3rem;
   max-width: 500px;
-  margin: 0 auto;
-  touch-action: manipulation;
+  width: 100%;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
 .key {
   border: none;
   border-radius: 4px;
-  padding: 0.5rem 0.2rem;
+  min-width: 1.9rem;
+  height: 2.8rem;
+  padding: 0 0.25rem;
   background: var(--key-bg);
   color: var(--key-text);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   cursor: pointer;
   user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
+}
+
+.key.wide {
+  min-width: 3.2rem;
+  font-size: 0.6rem;
 }
 
 .key.large {
@@ -193,69 +287,208 @@ main {
 }
 
 #new-game {
-  margin: 0.5rem auto 0;
-  padding: 0.5rem 1.25rem;
+  position: fixed;
+  bottom: 7.5rem; /* Above keyboard */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.35rem 1rem;
   border-radius: 999px;
   border: 1px solid #3a3a3c;
-  background: transparent;
+  background: var(--bg);
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   cursor: pointer;
+  z-index: 101;
 }
 
 #new-game:hover {
   background: #1f1f21;
 }
 
+/* Responsive adjustments */
 @media (max-width: 480px) {
   header h1 {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
   }
   .tile {
-    font-size: 1.4rem;
+    font-size: clamp(0.9rem, 3.5vmin, 1.5rem);
   }
   .key {
-    font-size: 0.75rem;
-    padding: 0.45rem 0.15rem;
+    font-size: 0.7rem;
+    min-width: 1.5rem;
+    height: 2.5rem;
+    padding: 0 0.2rem;
+  }
+  .key.wide {
+    min-width: 2.8rem;
+    font-size: 0.55rem;
+  }
+  main {
+    padding-bottom: 7rem;
+  }
+  #new-game {
+    bottom: 6.5rem;
   }
 }
 
-/* Word info panel */
-.word-info {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  background: #1a1a1b;
-  border: 1px solid #3a3a3c;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  max-height: 200px;
-  overflow-y: auto;
+/* Landscape mode - side by side layout */
+@media (orientation: landscape) and (max-height: 500px) {
+  .game {
+    max-width: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  header {
+    width: 100%;
+    padding-bottom: 0.25rem;
+  }
+  main {
+    flex: 1;
+    min-width: 300px;
+    padding-bottom: 8rem;
+  }
+  .keyboard {
+    padding: 0.35rem;
+  }
+  .word-info {
+    position: fixed;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 250px;
+    max-height: 60vh;
+  }
 }
 
-.word-info:empty {
+/* Word info panel - hidden by default on mobile, shown on desktop */
+.word-info {
+  display: none; /* Hidden on mobile - no scrolling! */
+}
+
+/* Word info entries container for multiple definitions */
+.word-info-entries {
   display: none;
 }
 
-.word-info .word-title {
-  font-weight: 700;
-  color: #7dd3fc;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
+/* Desktop: show word info with alternating left/right positioning */
+@media (min-width: 1000px) {
+  body {
+    justify-content: center;
+  }
+  
+  .game {
+    position: relative;
+    max-width: 540px;
+  }
+  
+  /* Hide the old single word-info on desktop */
+  .word-info {
+    display: none !important;
+  }
+  
+  /* Show the multi-entry container */
+  .word-info-entries {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+  
+  /* Individual word info entry */
+  .word-info-entry {
+    position: absolute;
+    width: 200px;
+    padding: 0.6rem 0.75rem;
+    background: #1a1a1b;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .word-info-entry.visible {
+    opacity: 1;
+  }
+  
+  .word-info-entry.right-side {
+    left: calc(50% + 280px);
+  }
+  
+  .word-info-entry.left-side {
+    right: calc(50% + 280px);
+  }
+  
+  /* Connecting line from row to definition */
+  .word-info-entry::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background: linear-gradient(90deg, #3a3a3c, #538d4e);
+  }
+  
+  .word-info-entry.right-side::before {
+    right: 100%;
+  }
+  
+  .word-info-entry.left-side::before {
+    left: 100%;
+  }
 }
 
-.word-info .definition {
+/* Show word info inline only on tall screens (smaller desktop/tablet) */
+@media (min-height: 800px) and (max-width: 999px) {
+  .word-info {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #1a1a1b;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-height: 100px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  
+  .word-info:empty {
+    display: none;
+  }
+}
+
+.word-info .word-title,
+.word-info-entry .word-title {
+  font-weight: 700;
+  color: #7dd3fc;
+  margin-bottom: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.word-info .definition,
+.word-info-entry .definition {
   color: #e2e8f0;
   margin-bottom: 0.5rem;
 }
 
-.word-info .etymology {
+.word-info .etymology,
+.word-info-entry .etymology {
   color: #94a3b8;
   font-style: italic;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
-.word-info .etymology::before {
+.word-info .etymology::before,
+.word-info-entry .etymology::before {
   content: "Etymology: ";
   font-weight: 600;
   font-style: normal;
@@ -288,21 +521,28 @@ header {
   position: relative;
 }
 
-/* Keyboard hints */
+/* Keyboard hints - hide on small screens */
 .keyboard-hints {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.7rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
+  display: none;
+}
+
+@media (min-height: 700px) {
+  .keyboard-hints {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.6rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+  }
 }
 
 .keyboard-hints span {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .key-hint {
@@ -310,8 +550,8 @@ header {
   border: 1px solid rgba(255,255,255,0.2);
   border-bottom-width: 2px;
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 1px 4px;
   font-family: monospace;
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   color: #9ca3af;
 }
