@@ -1,0 +1,25 @@
+============================================================
+Word Definition Fetcher
+============================================================
+Found 5 word files to process
+This will take a while due to API rate limiting...
+You can stop and resume at any time (progress is saved)
+
+
+============================================================
+Processing: word-data/words3.json
+============================================================
+Words needing definitions: 0
+No words to process!
+
+============================================================
+Processing: word-data/words4.json
+============================================================
+Words needing definitions: 0
+No words to process!
+
+============================================================
+Processing: word-data/words5.json
+============================================================
+Words needing definitions: 2276
+  [1/2276] Processing SOWAR...  [10/2276] Processing SPAAD...
