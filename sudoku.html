@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="common.css" />
   <script src="activity-logger.js"></script>
+  <script src="game-state.js"></script>
   <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
@@ -417,8 +418,71 @@
       const [isPaused, setIsPaused] = useState(false);
       const [showNewGameModal, setShowNewGameModal] = useState(true);
       const [sessionId, setSessionId] = useState(null);
+      
+      const STATE_KEY = 'sudoku';
+      
+      // ===== STATE SAVE/LOAD =====
+      const saveGameState = useCallback(function() {
+        if (gameStatus !== 'playing') {
+          GameState.clear(STATE_KEY);
+          return;
+        }
+        
+        // Serialize notes (Sets to arrays)
+        const notesData = notes.map(function(row) {
+          return row.map(function(cell) { return Array.from(cell); });
+        });
+        
+        GameState.save(STATE_KEY, {
+          board: board,
+          initialBoard: initialBoard,
+          solution: solution,
+          notes: notesData,
+          selectedCell: selectedCell,
+          mistakes: mistakes,
+          difficulty: difficulty,
+          isNoteMode: isNoteMode,
+          timer: timer,
+          sessionId: sessionId
+        });
+      }, [board, initialBoard, solution, notes, selectedCell, mistakes, difficulty, isNoteMode, timer, sessionId, gameStatus]);
+      
+      // Save state on every significant change
+      useEffect(function() {
+        if (gameStatus === 'playing') {
+          saveGameState();
+        }
+      }, [board, notes, mistakes, timer, saveGameState, gameStatus]);
+      
+      // Try to load saved game on mount
+      useEffect(function() {
+        const saved = GameState.load(STATE_KEY);
+        if (saved && saved.board && saved.solution) {
+          // Restore notes (arrays to Sets)
+          const restoredNotes = saved.notes.map(function(row) {
+            return row.map(function(cell) { return new Set(cell); });
+          });
+          
+          setBoard(saved.board);
+          setInitialBoard(saved.initialBoard);
+          setSolution(saved.solution);
+          setNotes(restoredNotes);
+          setSelectedCell(saved.selectedCell);
+          setMistakes(saved.mistakes);
+          setDifficulty(saved.difficulty);
+          setIsNoteMode(saved.isNoteMode);
+          setTimer(saved.timer);
+          setSessionId(saved.sessionId);
+          setGameStatus('playing');
+          setShowNewGameModal(false);
+        }
+      }, []);
+      // ===== END STATE SAVE/LOAD =====
 
       function startNewGame(diff) {
+        // Clear any saved state when starting a new game
+        GameState.clear(STATE_KEY);
+        
         const result = generateSudoku(diff);
         const initial = result.initial;
         const solved = result.solution;
@@ -495,6 +559,7 @@
             
             if (newMistakes >= 3) {
               setGameStatus('lost');
+              GameState.clear(STATE_KEY);
               ActivityLogger.endSession(sessionId, 'sudoku', {
                 won: false, difficulty: difficulty, time: timer, mistakes: newMistakes
               });
@@ -524,6 +589,7 @@
             }
             if (isComplete) {
               setGameStatus('won');
+              GameState.clear(STATE_KEY);
               ActivityLogger.endSession(sessionId, 'sudoku', {
                 won: true, difficulty: difficulty, time: timer, mistakes: mistakes
               });
@@ -570,6 +636,7 @@
         }
         if (isComplete) {
           setGameStatus('won');
+          GameState.clear(STATE_KEY);
           ActivityLogger.endSession(sessionId, 'sudoku', {
             won: true, difficulty: difficulty, time: timer, mistakes: mistakes, usedHint: true
           });

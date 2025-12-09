@@ -3,13 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <title>Septle – 7-Letter Word Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="common.css" />
   <script src="activity-logger.js"></script>
+  <script src="game-state.js"></script>
   <style>
+    .game { max-width: 580px; }
     .board {
       grid-template-columns: repeat(7, 1fr);
-      max-width: min(400px, 90vw);
+      max-width: 490px;
+    }
+    .tile { font-size: 1.6rem; }
+    @media (max-width: 480px) {
+      .tile { font-size: 1.2rem; }
     }
   </style>
 </head>
@@ -18,20 +24,23 @@
     <header>
       <a href="index.html" class="home-link" title="Back to games (H)">🏠</a>
       <h1>Septle</h1>
-      <small>Guess the seven-letter word in six tries</small>
+      <small>Guess the seven-letter British English word in six tries</small>
     </header>
 
     <main>
-      <div class="board-wrapper" id="boardWrapper">
-        <div id="board" class="board" aria-label="Game board"></div>
-      </div>
+      <div id="board" class="board" aria-label="Game board"></div>
       <div id="message" class="message" aria-live="polite"></div>
+      <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+      <button id="new-game" type="button">New game</button>
+      <div class="keyboard-hints">
+        <span><span class="key-hint">Enter</span> Submit</span>
+        <span><span class="key-hint">⌫</span> Delete</span>
+        <span><span class="key-hint">N</span> New game*</span>
+        <span><span class="key-hint">H</span> Home*</span>
+        <span style="width:100%;text-align:center;font-size:0.6rem;">*after game ends</span>
+      </div>
+      <div id="word-info" class="word-info" aria-live="polite"></div>
     </main>
-
-    <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
-    <button id="new-game" type="button">New game</button>
-    <div id="word-info" class="word-info" aria-live="polite"></div>
-    <div id="word-info-entries" class="word-info-entries" aria-live="polite"></div>
   </div>
 
   <script>
@@ -672,6 +681,7 @@
 
     const WORD_LENGTH = 7;
     const MAX_GUESSES = 6;
+    const STATE_KEY = 'septle';
 
     let secretWord = "";
     let currentRow = 0;
@@ -685,45 +695,97 @@
     const GAME_NAME = 'septle';
 
     const boardEl = document.getElementById("board");
-    const boardWrapperEl = document.getElementById("boardWrapper");
     const messageEl = document.getElementById("message");
     const keyboardEl = document.getElementById("keyboard");
     const newGameBtn = document.getElementById("new-game");
-    
-    // For board centering
-    let tileHeight = 0;
-    let boardGap = 4;
 
-    function centerCurrentRow() {
-      if (!tileHeight) {
-        const firstTile = getTile(0, 0);
-        if (firstTile) {
-          tileHeight = firstTile.offsetHeight;
-          const boardStyle = getComputedStyle(boardEl);
-          boardGap = parseFloat(boardStyle.gap) || 4;
-        }
+    // ===== STATE SAVE/LOAD =====
+    function saveGameState() {
+      if (isGameOver) {
+        GameState.clear(STATE_KEY);
+        return;
       }
-      const rowHeight = tileHeight + boardGap;
-      const offset = currentRow * rowHeight;
-      boardWrapperEl.style.transform = `translateY(-${offset}px)`;
-      updateRowOpacity();
+      
+      const boardState = [];
+      for (let row = 0; row < MAX_GUESSES; row++) {
+        const rowData = [];
+        for (let col = 0; col < WORD_LENGTH; col++) {
+          const tile = getTile(row, col);
+          if (tile) {
+            rowData.push({
+              letter: tile.textContent,
+              classes: [...tile.classList].filter(c => ['correct', 'present', 'absent', 'filled', 'flip'].includes(c))
+            });
+          }
+        }
+        boardState.push(rowData);
+      }
+      
+      const keyboardState = {};
+      keyboardEl.querySelectorAll('.key').forEach(key => {
+        const keyLetter = key.dataset.key;
+        const status = key.dataset.status;
+        if (status) {
+          keyboardState[keyLetter] = status;
+        }
+      });
+      
+      GameState.save(STATE_KEY, {
+        secretWord,
+        currentRow,
+        currentCol,
+        boardState,
+        keyboardState,
+        sessionId
+      });
     }
     
-    function updateRowOpacity() {
-      for (let r = 0; r < MAX_GUESSES; r++) {
-        for (let c = 0; c < WORD_LENGTH; c++) {
-          const tile = getTile(r, c);
-          if (tile) {
-            const rowDistance = currentRow - r;
-            if (rowDistance > 3) {
-              tile.dataset.faded = "true";
-            } else {
-              delete tile.dataset.faded;
+    function loadGameState() {
+      const saved = GameState.load(STATE_KEY);
+      if (!saved || !saved.secretWord) return false;
+      
+      if (saved.currentRow >= MAX_GUESSES) {
+        GameState.clear(STATE_KEY);
+        return false;
+      }
+      
+      secretWord = saved.secretWord;
+      currentRow = saved.currentRow;
+      currentCol = saved.currentCol;
+      sessionId = saved.sessionId;
+      isGameOver = false;
+      
+      createBoard();
+      createKeyboard();
+      
+      if (saved.boardState) {
+        for (let row = 0; row < saved.boardState.length; row++) {
+          for (let col = 0; col < saved.boardState[row].length; col++) {
+            const cellData = saved.boardState[row][col];
+            const tile = getTile(row, col);
+            if (tile && cellData.letter) {
+              tile.textContent = cellData.letter;
+              cellData.classes.forEach(cls => tile.classList.add(cls));
             }
           }
         }
       }
+      
+      if (saved.keyboardState) {
+        for (const [letter, status] of Object.entries(saved.keyboardState)) {
+          const keyBtn = keyboardEl.querySelector(`.key[data-key="${letter}"]`);
+          if (keyBtn) {
+            keyBtn.dataset.status = status;
+            keyBtn.classList.add(status);
+          }
+        }
+      }
+      
+      showMessage("Game restored – continue playing!");
+      guessStartTime = Date.now();
+      return true;
     }
+    // ===== END STATE SAVE/LOAD =====
 
     function pickSecretWord() {
       const idx = Math.floor(Math.random() * WORD_LIST.length);
@@ -745,37 +807,50 @@
 
     function createKeyboard() {
       keyboardEl.innerHTML = "";
-      const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+      const rows = [
+        "QWERTYUIOP",
+        "ASDFGHJKL",
+        "ZXCVBNM"
+      ];
 
-      rows.forEach((row, ri) => {
-        const rowDiv = document.createElement("div");
-        rowDiv.className = "keyboard-row";
+      // First row
+      const row1 = document.createElement("div");
+      row1.className = "keyboard-row";
+      for (const ch of rows[0]) {
+        row1.appendChild(makeKeyButton(ch));
+      }
+      keyboardEl.appendChild(row1);
 
-        if (ri === 2) {
-          const enter = makeKeyButton("ENTER");
-          enter.classList.add("wide");
-          rowDiv.appendChild(enter);
-        }
+      // Second row
+      const row2 = document.createElement("div");
+      row2.className = "keyboard-row";
+      for (const ch of rows[1]) {
+        row2.appendChild(makeKeyButton(ch));
+      }
+      keyboardEl.appendChild(row2);
 
-        for (const ch of row) {
-          rowDiv.appendChild(makeKeyButton(ch));
-        }
+      // Third row with ENTER and DELETE
+      const row3 = document.createElement("div");
+      row3.className = "keyboard-row";
+      const enterKey = makeKeyButton("ENTER");
+      enterKey.classList.add("large");
+      row3.appendChild(enterKey);
 
-        if (ri === 2) {
-          const del = makeKeyButton("DEL");
-          del.classList.add("wide");
-          rowDiv.appendChild(del);
-        }
+      for (const ch of rows[2]) {
+        row3.appendChild(makeKeyButton(ch));
+      }
 
-        keyboardEl.appendChild(rowDiv);
-      });
+      const delKey = makeKeyButton("DEL");
+      delKey.classList.add("large");
+      row3.appendChild(delKey);
+      keyboardEl.appendChild(row3);
     }
 
     function makeKeyButton(label) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "key";
-      btn.textContent = label === "DEL" ? "⌫" : label === "ENTER" ? "Enter" : label;
+      btn.textContent = label === "DEL" ? "⌫" : label;
       btn.dataset.key = label;
       btn.addEventListener("click", () => handleKey(label));
       return btn;
@@ -896,6 +971,7 @@
       if (isCorrect) {
         showMessage("Splendid! You've got it.");
         isGameOver = true;
+        GameState.clear(STATE_KEY);
         // Log round end
         ActivityLogger.log(sessionId, 'round_end', {
           won: true,
@@ -909,11 +985,11 @@
       currentRow += 1;
       currentCol = 0;
       guessStartTime = Date.now(); // Reset timer for next guess
-      centerCurrentRow();
 
       if (currentRow >= MAX_GUESSES) {
         showMessage(`Unlucky – the word was ${secretWord}`);
         isGameOver = true;
+        GameState.clear(STATE_KEY);
         // Log round end
         ActivityLogger.log(sessionId, 'round_end', {
           won: false,
@@ -923,6 +999,7 @@
         });
       } else {
         showMessage("");
+        saveGameState();
       }
     }
 
@@ -967,50 +1044,22 @@
       .catch(e => console.log('Could not load word data:', e));
 
     const wordInfoEl = document.getElementById("word-info");
-    const wordInfoEntriesEl = document.getElementById("word-info-entries");
-    let wordInfoByRow = {};
 
     function showWordInfo(word) {
-      const row = currentRow;
       const info = wordData[word];
       if (!info) {
         wordInfoEl.innerHTML = '';
         return;
       }
-      displayWordInfo(word, info, row);
-    }
-    
-    function displayWordInfo(word, info, row) {
+      
       let html = '<div class="word-title">' + word + '</div>';
-      if (info.d) html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
-      if (info.e) html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      if (info.d) {
+        html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
+      }
+      if (info.e) {
+        html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
+      }
       wordInfoEl.innerHTML = html;
-      if (window.innerWidth >= 1000) createWordInfoEntry(word, info, row);
-    }
-    
-    function createWordInfoEntry(word, info, row) {
-      const existing = wordInfoEntriesEl.querySelector(`[data-row="${row}"]`);
-      if (existing) existing.remove();
-      const entry = document.createElement('div');
-      entry.className = 'word-info-entry';
-      entry.dataset.row = row;
-      entry.classList.add(row % 2 === 0 ? 'right-side' : 'left-side');
-      let html = '<div class="word-title">' + word + '</div>';
-      if (info.d) html += '<div class="definition">' + escapeHtml(info.d) + '</div>';
-      if (info.e) html += '<div class="etymology">' + escapeHtml(info.e) + '</div>';
-      entry.innerHTML = html;
-      positionWordInfoEntry(entry, row);
-      wordInfoEntriesEl.appendChild(entry);
-      requestAnimationFrame(() => entry.classList.add('visible'));
-      wordInfoByRow[row] = entry;
-    }
-    
-    function positionWordInfoEntry(entry, row) {
-      const firstTile = getTile(row, 0);
-      if (!firstTile) return;
-      const tileRect = firstTile.getBoundingClientRect();
-      entry.style.top = `${tileRect.top + tileRect.height / 2}px`;
-      entry.style.transform = 'translateY(-50%)';
     }
     
     function escapeHtml(text) {
@@ -1020,21 +1069,15 @@
     }
 
     function resetGame() {
+      GameState.clear(STATE_KEY);
       secretWord = pickSecretWord();
       currentRow = 0;
       currentCol = 0;
       isGameOver = false;
-      tileHeight = 0;
       createBoard();
       createKeyboard();
       showMessage("New game – good luck!");
       wordInfoEl.innerHTML = '';
-      wordInfoEntriesEl.innerHTML = '';
-      wordInfoByRow = {};
-      
-      requestAnimationFrame(() => {
-        centerCurrentRow();
-      });
       
       // Reset logging for new game
       guesses = [];
@@ -1066,7 +1109,10 @@
 
     newGameBtn.addEventListener("click", resetGame);
 
-    resetGame();
+    // Initialize: try to load saved game, otherwise start new game
+    if (!loadGameState()) {
+      resetGame();
+    }
   </script>
 </body>
 </html>

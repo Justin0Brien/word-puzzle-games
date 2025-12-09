@@ -57,6 +57,25 @@
             font-size: 1.1rem;
         }
 
+        .dashboard-link {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--card-bg);
+            color: var(--accent);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            border: 1px solid var(--card-hover);
+            transition: all 0.2s;
+        }
+
+        .dashboard-link:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
         .games-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -326,99 +345,6 @@
             padding: 2rem;
         }
 
-        /* Play count badge */
-        .play-count {
-            position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            background: var(--accent);
-            color: var(--bg);
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 0.2rem 0.5rem;
-            border-radius: 999px;
-            opacity: 0.9;
-        }
-        
-        .game-card {
-            position: relative;
-        }
-
-        /* Performance Stats Modal */
-        .perf-section {
-            margin-bottom: 2rem;
-        }
-        
-        .perf-section h4 {
-            font-size: 1rem;
-            color: var(--accent);
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--card-hover);
-        }
-        
-        .perf-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        
-        .perf-card {
-            background: var(--bg);
-            padding: 1rem;
-            border-radius: 8px;
-        }
-        
-        .perf-card h5 {
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
-            color: var(--text);
-        }
-        
-        .perf-stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.3rem 0;
-            font-size: 0.85rem;
-            border-bottom: 1px solid var(--card-hover);
-        }
-        
-        .perf-stat:last-child {
-            border-bottom: none;
-        }
-        
-        .perf-stat-label {
-            color: var(--text-muted);
-        }
-        
-        .perf-stat-value {
-            color: var(--text);
-            font-weight: 600;
-        }
-        
-        .perf-stat-value.good {
-            color: var(--success);
-        }
-        
-        .perf-stat-value.bad {
-            color: var(--danger);
-        }
-        
-        .win-bar {
-            height: 8px;
-            background: var(--card-hover);
-            border-radius: 4px;
-            margin-top: 0.5rem;
-            overflow: hidden;
-        }
-        
-        .win-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--success), var(--accent));
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
         @media (max-width: 480px) {
             body {
                 padding: 1rem;
@@ -444,10 +370,11 @@
         <header>
             <h1>🎮 Word & Puzzle Games</h1>
             <p class="subtitle">Challenge your brain with these fun word games</p>
+            <a href="dashboard.html" class="dashboard-link">📊 View Progress Dashboard</a>
         </header>
 
         <main class="games-grid" id="gamesGrid">
-            <!-- Games populated dynamically by JS, sorted by play count -->
+            <!-- Games populated by JS, sorted by play count -->
         </main>
 
         <footer>
@@ -459,7 +386,6 @@
             <div class="activity-header">
                 <h2>📊 Activity Log</h2>
                 <div class="activity-buttons">
-                    <button class="btn" onclick="viewPerformance()">📈 Performance</button>
                     <button class="btn" onclick="viewActivity()">View Log</button>
                     <button class="btn btn-primary" onclick="exportActivity()">Export</button>
                     <button class="btn btn-danger" onclick="clearActivity()">Delete All</button>
@@ -475,7 +401,7 @@
     <div class="modal-overlay" id="activityModal">
         <div class="modal">
             <div class="modal-header">
-                <h3 id="modalTitle">Activity Log</h3>
+                <h3>Activity Log</h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body" id="activityLogContent">
@@ -485,51 +411,48 @@
     </div>
 
     <script>
-        // All available games with their metadata
+        // Game definitions with their activity log IDs
         const GAMES = [
-            { id: 'Omnurdle', href: 'omnurdle.html', icon: '🎯', name: 'Omnurdle', desc: 'Choose your challenge! Pick any word length from 3 to 7 letters and test your vocabulary.' },
-            { id: 'Thirdle', href: 'thirdle.html', icon: '🟨', name: 'Thirdle', desc: 'A quick Wordle-style game with 3-letter words. Perfect for a fast brain warm-up!' },
-            { id: 'Fourdle', href: 'fourdle.html', icon: '🟩', name: 'Fourdle', desc: 'A Wordle-style game with 4-letter words. Guess the hidden word in 6 tries with colour-coded hints.' },
-            { id: 'Wordle', href: 'wordle.html', icon: '🟧', name: 'Wordle', desc: 'The classic 5-letter word game. Guess the hidden word in 6 tries with colour-coded hints.' },
-            { id: 'Sestle', href: 'sestle.html', icon: '🟦', name: 'Sestle', desc: 'The ultimate challenge – 6-letter words! Test your vocabulary with over 5,000 British English words.' },
-            { id: 'Septle', href: 'septle.html', icon: '🟪', name: 'Septle', desc: 'The supreme test – 7-letter words! Over 6,000 British English words to challenge your lexicon.' },
-            { id: 'Missing Vowels', href: 'missing-vowels.html', icon: '🔤', name: 'Missing Vowels', desc: 'Figure out the words and phrases with all the vowels removed. Inspired by the classic Only Connect round.' },
-            { id: 'Rhyme Time', href: 'rhyme-time.html', icon: '🎭', name: 'Rhyme Time', desc: 'Answer two clues where the answers rhyme with each other. Inspired by the House of Games classic round.' },
-            { id: 'Alphanumeric', href: 'alphanumeric.html', icon: '🔢', name: 'Alphanumeric', desc: 'Crack the code! Words are shown as numbers where A=1, B=2, ... Z=26. Decode them before time runs out.' },
-            { id: 'Sudoku', href: 'sudoku.html', icon: '🔲', name: 'Sudoku', desc: 'The classic number puzzle. Fill the 9×9 grid so each row, column, and 3×3 box contains digits 1-9.' },
-            { id: 'Code Trainer', href: 'code-trainer.html', icon: '🧠', name: 'Code Trainer', desc: 'Learn the A=1 to Z=26 alphabet code. Type any text and see its numeric code appear instantly below.' },
-            { id: 'Code Flashcards', href: 'code-flashcard.html', icon: '⚡', name: 'Code Flashcards', desc: 'Test your A=1 to Z=26 speed! See a number, press the letter. Track your accuracy and response time.' }
+            { id: 'thirdle', href: 'thirdle.html', icon: '🟨', name: 'Thirdle', desc: 'A quick Wordle-style game with 3-letter words. Perfect for a fast brain warm-up!' },
+            { id: 'fourdle', href: 'fourdle.html', icon: '🟩', name: 'Fourdle', desc: 'A Wordle-style game with 4-letter words. Guess the hidden word in 6 tries with colour-coded hints.' },
+            { id: 'wordle', href: 'wordle.html', icon: '🟧', name: 'Wordle', desc: 'The classic 5-letter word game. Guess the hidden word in 6 tries with colour-coded hints.' },
+            { id: 'sestle', href: 'sestle.html', icon: '🟦', name: 'Sestle', desc: 'The ultimate challenge – 6-letter words! Test your vocabulary with over 5,000 British English words.' },
+            { id: 'septle', href: 'septle.html', icon: '🟪', name: 'Septle', desc: 'The supreme test – 7-letter words! Over 6,000 British English words to challenge your lexicon.' },
+            { id: 'missing-vowels', href: 'missing-vowels.html', icon: '🔤', name: 'Missing Vowels', desc: 'Figure out the words and phrases with all the vowels removed. Inspired by the classic Only Connect round.' },
+            { id: 'rhyme-time', href: 'rhyme-time.html', icon: '🎭', name: 'Rhyme Time', desc: 'Answer two clues where the answers rhyme with each other. Inspired by the House of Games classic round.' },
+            { id: 'alphanumeric', href: 'alphanumeric.html', icon: '🔢', name: 'Alphanumeric', desc: 'Crack the code! Words are shown as numbers where A=1, B=2, ... Z=26. Decode them before time runs out.' },
+            { id: 'sudoku', href: 'sudoku.html', icon: '🔲', name: 'Sudoku', desc: 'The classic number puzzle. Fill the 9×9 grid so each row, column, and 3×3 box contains digits 1-9.' },
+            { id: 'code-trainer', href: 'code-trainer.html', icon: '🧠', name: 'Code Trainer', desc: 'Learn the A=1 to Z=26 alphabet code. Type any text and see its numeric code appear instantly below.' },
+            { id: 'code-flashcard', href: 'code-flashcard.html', icon: '⚡', name: 'Code Flashcards', desc: 'Test your A=1 to Z=26 speed! See a number, press the letter. Track your accuracy and response time.' },
+            { id: 'omnurdle', href: 'omnurdle.html', icon: '🎛️', name: 'Omnurdle', desc: 'Customisable Wordle! Choose 3-7 letter words and adjust your number of attempts for the perfect challenge.' }
         ];
 
-        // Render games grid sorted by play count
+        // Render games sorted by play count
         function renderGames() {
             const stats = ActivityLogger.getStats();
+            const gameStats = stats.gameStats || {};
+            
+            // Sort games by play count (descending), then by original order for ties
+            const sortedGames = GAMES.map((game, originalIndex) => ({
+                ...game,
+                playCount: gameStats[game.id]?.gamesPlayed || 0,
+                originalIndex
+            })).sort((a, b) => {
+                if (b.playCount !== a.playCount) {
+                    return b.playCount - a.playCount;
+                }
+                return a.originalIndex - b.originalIndex;
+            });
+            
             const grid = document.getElementById('gamesGrid');
-            
-            // Sort games by play count (most played first)
-            const sortedGames = [...GAMES].sort((a, b) => {
-                const aPlays = stats.gameStats[a.id]?.gamesPlayed || 0;
-                const bPlays = stats.gameStats[b.id]?.gamesPlayed || 0;
-                return bPlays - aPlays;
-            });
-            
-            let html = '';
-            sortedGames.forEach(game => {
-                const playCount = stats.gameStats[game.id]?.gamesPlayed || 0;
-                const playCountBadge = playCount > 0 ? `<span class="play-count">${playCount} plays</span>` : '';
-                
-                html += `
-                    <a href="${game.href}" class="game-card">
-                        ${playCountBadge}
-                        <div class="game-icon">${game.icon}</div>
-                        <h2>${game.name}</h2>
-                        <p>${game.desc}</p>
-                        <span class="play-btn">Play Now</span>
-                    </a>
-                `;
-            });
-            
-            grid.innerHTML = html;
+            grid.innerHTML = sortedGames.map(game => `
+                <a href="${game.href}" class="game-card">
+                    <div class="game-icon">${game.icon}</div>
+                    <h2>${game.name}</h2>
+                    <p>${game.desc}</p>
+                    <span class="play-btn">Play Now</span>
+                </a>
+            `).join('');
         }
 
         // Update stats display
@@ -577,160 +500,8 @@
             grid.innerHTML = html;
         }
         
-        // View detailed performance statistics
-        function viewPerformance() {
-            const stats = ActivityLogger.getStats();
-            const logs = ActivityLogger.getLogs();
-            const content = document.getElementById('activityLogContent');
-            document.getElementById('modalTitle').textContent = '📈 Performance Statistics';
-            
-            if (stats.totalSessions === 0) {
-                content.innerHTML = '<div class="no-data">No performance data yet. Play some games to see your stats!</div>';
-                document.getElementById('activityModal').classList.add('active');
-                return;
-            }
-            
-            let html = '';
-            
-            // Overall summary
-            html += `
-                <div class="perf-section">
-                    <h4>📊 Overall Summary</h4>
-                    <div class="perf-grid">
-                        <div class="perf-card">
-                            <h5>All Games</h5>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Total Games</span>
-                                <span class="perf-stat-value">${stats.totalSessions}</span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Total Guesses</span>
-                                <span class="perf-stat-value">${stats.totalGuesses || 0}</span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">First Played</span>
-                                <span class="perf-stat-value">${stats.firstActivity ? new Date(stats.firstActivity).toLocaleDateString() : '-'}</span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Last Played</span>
-                                <span class="perf-stat-value">${stats.lastActivity ? new Date(stats.lastActivity).toLocaleDateString() : '-'}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Per-game detailed stats
-            const gamesWithStats = Object.entries(stats.gameStats).filter(([_, data]) => data.gamesPlayed > 0);
-            
-            if (gamesWithStats.length > 0) {
-                html += `<div class="perf-section"><h4>🎮 Game Performance</h4><div class="perf-grid">`;
-                
-                gamesWithStats.sort((a, b) => b[1].gamesPlayed - a[1].gamesPlayed).forEach(([game, data]) => {
-                    const winRate = data.gamesPlayed > 0 ? Math.round((data.wins / data.gamesPlayed) * 100) : 0;
-                    const avgScore = data.gamesPlayed > 0 ? (data.totalScore / data.gamesPlayed).toFixed(1) : '-';
-                    
-                    // Calculate streaks from logs
-                    const gameLogs = logs.filter(l => 
-                        (l.type === 'session_end' || l.type === 'round_end') && 
-                        (l.game === game || logs.find(s => s.sessionId === l.sessionId && s.game === game))
-                    );
-                    
-                    let currentStreak = 0;
-                    let bestStreak = 0;
-                    let tempStreak = 0;
-                    
-                    gameLogs.forEach(log => {
-                        if (log.won === true) {
-                            tempStreak++;
-                            if (tempStreak > bestStreak) bestStreak = tempStreak;
-                        } else if (log.won === false) {
-                            tempStreak = 0;
-                        }
-                    });
-                    
-                    // Current streak (from end of logs)
-                    for (let i = gameLogs.length - 1; i >= 0; i--) {
-                        if (gameLogs[i].won === true) {
-                            currentStreak++;
-                        } else if (gameLogs[i].won === false) {
-                            break;
-                        }
-                    }
-                    
-                    html += `
-                        <div class="perf-card">
-                            <h5>${game}</h5>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Games Played</span>
-                                <span class="perf-stat-value">${data.gamesPlayed}</span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Win Rate</span>
-                                <span class="perf-stat-value ${winRate >= 50 ? 'good' : winRate > 0 ? 'bad' : ''}">${winRate}%</span>
-                            </div>
-                            <div class="win-bar"><div class="win-bar-fill" style="width: ${winRate}%"></div></div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Wins / Losses</span>
-                                <span class="perf-stat-value"><span class="good">${data.wins}</span> / <span class="bad">${data.losses}</span></span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Current Streak</span>
-                                <span class="perf-stat-value ${currentStreak > 0 ? 'good' : ''}">${currentStreak}🔥</span>
-                            </div>
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Best Streak</span>
-                                <span class="perf-stat-value">${bestStreak}🏆</span>
-                            </div>
-                            ${data.avgReactionTimeMs ? `
-                            <div class="perf-stat">
-                                <span class="perf-stat-label">Avg Response</span>
-                                <span class="perf-stat-value">${(data.avgReactionTimeMs / 1000).toFixed(1)}s</span>
-                            </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-                
-                html += `</div></div>`;
-            }
-            
-            // Recent performance trend
-            const recentResults = logs.filter(l => l.type === 'session_end' || l.type === 'round_end').slice(-20);
-            if (recentResults.length > 0) {
-                const recentWins = recentResults.filter(r => r.won === true).length;
-                const recentWinRate = Math.round((recentWins / recentResults.length) * 100);
-                
-                html += `
-                    <div class="perf-section">
-                        <h4>📈 Recent Trend (Last ${recentResults.length} games)</h4>
-                        <div class="perf-grid">
-                            <div class="perf-card">
-                                <h5>Recent Performance</h5>
-                                <div class="perf-stat">
-                                    <span class="perf-stat-label">Win Rate</span>
-                                    <span class="perf-stat-value ${recentWinRate >= 50 ? 'good' : 'bad'}">${recentWinRate}%</span>
-                                </div>
-                                <div class="win-bar"><div class="win-bar-fill" style="width: ${recentWinRate}%"></div></div>
-                                <div class="perf-stat">
-                                    <span class="perf-stat-label">Results</span>
-                                    <span class="perf-stat-value">
-                                        ${recentResults.map(r => r.won === true ? '<span class="good">✓</span>' : '<span class="bad">✗</span>').join(' ')}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            content.innerHTML = html;
-            document.getElementById('activityModal').classList.add('active');
-        }
-        
         // View activity log
         function viewActivity() {
-            document.getElementById('modalTitle').textContent = 'Activity Log';
             const logs = ActivityLogger.getRecentActivity(100);
             const content = document.getElementById('activityLogContent');
             
@@ -846,7 +617,6 @@
             if (confirm('Are you sure you want to delete all activity history? This cannot be undone.')) {
                 ActivityLogger.clearLogs();
                 updateStats();
-                renderGames();
                 alert('Activity log cleared!');
             }
         }

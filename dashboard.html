@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Dashboard - Word & Puzzle Games</title>
+    <script src="activity-logger.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --purple: #a78bfa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--card-hover);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--text);
+            border-color: var(--accent);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            flex: 1;
+        }
+
+        /* Overview Cards */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .overview-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .overview-card:hover {
+            border-color: var(--card-hover);
+        }
+
+        .overview-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .overview-value.success { color: var(--success); }
+        .overview-value.warning { color: var(--warning); }
+        .overview-value.purple { color: var(--purple); }
+
+        .overview-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 2rem 0 1rem 0;
+        }
+
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .section-header .icon {
+            font-size: 1.5rem;
+        }
+
+        /* Game Stats Grid */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .game-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .game-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-hover);
+        }
+
+        .game-icon {
+            font-size: 2rem;
+        }
+
+        .game-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .game-subtitle {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .game-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-value.success { color: var(--success); }
+        .stat-value.danger { color: var(--danger); }
+        .stat-value.warning { color: var(--warning); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        /* Win Rate Bar */
+        .win-rate-container {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--card-hover);
+        }
+
+        .win-rate-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .win-rate-label {
+            color: var(--text-muted);
+        }
+
+        .win-rate-value {
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .win-rate-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .win-rate-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #4ade80);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Recent Activity */
+        .activity-list {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--card-hover);
+            transition: background 0.2s;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-item:hover {
+            background: var(--card-hover);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: var(--bg);
+        }
+
+        .activity-icon.win { background: rgba(34, 197, 94, 0.2); }
+        .activity-icon.loss { background: rgba(239, 68, 68, 0.2); }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-game {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-result {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .activity-result .win { color: var(--success); }
+        .activity-result .loss { color: var(--danger); }
+
+        .activity-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-align: right;
+        }
+
+        /* No Data State */
+        .no-data {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .no-data-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .no-data h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .no-data p {
+            margin-bottom: 1.5rem;
+        }
+
+        .no-data a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .no-data a:hover {
+            text-decoration: underline;
+        }
+
+        /* Streak Badge */
+        .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-hover);
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--card-hover);
+            border-color: var(--accent);
+        }
+
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .overview-value {
+                font-size: 2rem;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">← Back to Games</a>
+            <h1>📊 Progress Dashboard</h1>
+            <div class="actions">
+                <button class="btn" onclick="ActivityLogger.downloadLogs()">📥 Export Data</button>
+                <button class="btn btn-danger" onclick="confirmClear()">🗑️ Clear All</button>
+            </div>
+        </header>
+
+        <div id="dashboard-content">
+            <!-- Content populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Game display names and icons
+        const GAME_INFO = {
+            'thirdle': { name: 'Thirdle', icon: '🟨', description: '3-letter words' },
+            'fourdle': { name: 'Fourdle', icon: '🟩', description: '4-letter words' },
+            'wordle': { name: 'Wordle', icon: '🟧', description: '5-letter words' },
+            'sestle': { name: 'Sestle', icon: '🟦', description: '6-letter words' },
+            'septle': { name: 'Septle', icon: '🟪', description: '7-letter words' },
+            'omnurdle': { name: 'Omnurdle', icon: '🎛️', description: 'Customisable' },
+            'missing-vowels': { name: 'Missing Vowels', icon: '🔤', description: 'Word puzzles' },
+            'rhyme-time': { name: 'Rhyme Time', icon: '🎭', description: 'Rhyming pairs' },
+            'alphanumeric': { name: 'Alphanumeric', icon: '🔢', description: 'Code decoding' },
+            'sudoku': { name: 'Sudoku', icon: '🔲', description: 'Number puzzle' },
+            'code-trainer': { name: 'Code Trainer', icon: '🧠', description: 'Learn A=1 code' },
+            'code-flashcard': { name: 'Code Flashcards', icon: '⚡', description: 'Test A=1 speed' }
+        };
+
+        function getGameInfo(gameId) {
+            return GAME_INFO[gameId] || { 
+                name: gameId.charAt(0).toUpperCase() + gameId.slice(1).replace(/-/g, ' '), 
+                icon: '🎮', 
+                description: '' 
+            };
+        }
+
+        function formatTime(ms) {
+            if (!ms) return '—';
+            if (ms < 1000) return `${ms}ms`;
+            return `${(ms / 1000).toFixed(1)}s`;
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '—';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        function formatFullDate(isoString) {
+            if (!isoString) return '—';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('en-GB', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function renderDashboard() {
+            const stats = ActivityLogger.getStats();
+            const logs = ActivityLogger.getLogs();
+            const container = document.getElementById('dashboard-content');
+
+            // Check if there's any data
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data">
+                        <div class="no-data-icon">📊</div>
+                        <h3>No Activity Yet</h3>
+                        <p>Start playing some games to see your progress here!</p>
+                        <a href="index.html">← Go to Games</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calculate additional stats
+            const totalWins = Object.values(stats.gameStats).reduce((sum, g) => sum + (g.wins || 0), 0);
+            const totalLosses = Object.values(stats.gameStats).reduce((sum, g) => sum + (g.losses || 0), 0);
+            const totalGames = totalWins + totalLosses;
+            const overallWinRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
+
+            // Get recent completed sessions
+            const recentSessions = logs
+                .filter(l => l.type === 'session_end' || l.type === 'round_end')
+                .slice(-10)
+                .reverse();
+
+            // Build HTML
+            let html = `
+                <!-- Overview Cards -->
+                <div class="overview-grid">
+                    <div class="overview-card">
+                        <div class="overview-value">${stats.totalSessions}</div>
+                        <div class="overview-label">Games Played</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-value success">${totalWins}</div>
+                        <div class="overview-label">Wins</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-value warning">${overallWinRate}%</div>
+                        <div class="overview-label">Win Rate</div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="overview-value purple">${Object.keys(stats.gameStats).length}</div>
+                        <div class="overview-label">Games Tried</div>
+                    </div>
+                </div>
+
+                <!-- Game Stats -->
+                <div class="section-header">
+                    <span class="icon">🎮</span>
+                    <h2>Stats by Game</h2>
+                </div>
+                <div class="games-grid">
+            `;
+
+            // Sort games by games played, filtering out undefined/null game IDs
+            const sortedGames = Object.entries(stats.gameStats)
+                .filter(([gameId, gameStats]) => gameId && gameId !== 'undefined' && gameStats)
+                .sort((a, b) => b[1].gamesPlayed - a[1].gamesPlayed);
+
+            for (const [gameId, gameStats] of sortedGames) {
+                const info = getGameInfo(gameId);
+                const winRate = (gameStats.wins + gameStats.losses) > 0 
+                    ? Math.round((gameStats.wins / (gameStats.wins + gameStats.losses)) * 100) 
+                    : 0;
+                const avgScore = gameStats.gamesPlayed > 0 
+                    ? (gameStats.totalScore / gameStats.gamesPlayed).toFixed(1) 
+                    : 0;
+
+                html += `
+                    <div class="game-card">
+                        <div class="game-header">
+                            <span class="game-icon">${info.icon}</span>
+                            <div>
+                                <div class="game-title">${info.name}</div>
+                                <div class="game-subtitle">${info.description}</div>
+                            </div>
+                        </div>
+                        <div class="game-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${gameStats.gamesPlayed}</div>
+                                <div class="stat-label">Played</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value success">${gameStats.wins}</div>
+                                <div class="stat-label">Wins</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value danger">${gameStats.losses}</div>
+                                <div class="stat-label">Losses</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${formatTime(gameStats.avgReactionTimeMs)}</div>
+                                <div class="stat-label">Avg Time</div>
+                            </div>
+                        </div>
+                        <div class="win-rate-container">
+                            <div class="win-rate-header">
+                                <span class="win-rate-label">Win Rate</span>
+                                <span class="win-rate-value">${winRate}%</span>
+                            </div>
+                            <div class="win-rate-bar">
+                                <div class="win-rate-fill" style="width: ${winRate}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+
+            // Recent Activity - filter out entries without a valid game name
+            const validRecentSessions = recentSessions.filter(s => s.game && s.game !== 'undefined');
+            if (validRecentSessions.length > 0) {
+                html += `
+                    <div class="section-header">
+                        <span class="icon">🕐</span>
+                        <h2>Recent Activity</h2>
+                    </div>
+                    <div class="activity-list">
+                `;
+
+                for (const session of validRecentSessions) {
+                    const info = getGameInfo(session.game);
+                    const isWin = session.won === true;
+                    const resultClass = isWin ? 'win' : 'loss';
+                    const resultText = isWin ? 'Won' : 'Lost';
+                    
+                    let details = '';
+                    if (session.attempts !== undefined) {
+                        details = `${resultText} in ${session.attempts} ${session.attempts === 1 ? 'try' : 'tries'}`;
+                    } else if (session.score !== undefined) {
+                        details = `Score: ${session.score}`;
+                    } else {
+                        details = resultText;
+                    }
+
+                    if (session.targetWord) {
+                        details += ` — "${session.targetWord}"`;
+                    }
+
+                    html += `
+                        <div class="activity-item">
+                            <div class="activity-icon ${resultClass}">${info.icon}</div>
+                            <div class="activity-details">
+                                <div class="activity-game">${info.name}</div>
+                                <div class="activity-result">
+                                    <span class="${resultClass}">${details}</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">${formatDate(session.timestamp)}</div>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            }
+
+            // Activity period
+            html += `
+                <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+                    Activity from ${formatFullDate(stats.firstActivity)} to ${formatFullDate(stats.lastActivity)}
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function confirmClear() {
+            if (confirm('Are you sure you want to delete all activity data? This cannot be undone.')) {
+                ActivityLogger.clearLogs();
+                renderDashboard();
+            }
+        }
+
+        // Render on load - ensure DOM and ActivityLogger are ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', renderDashboard);
+        } else {
+            renderDashboard();
+        }
+    </script>
+</body>
+</html>
