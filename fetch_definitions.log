@@ -22,4 +22,107 @@ No words to process!
 Processing: word-data/words5.json
 ============================================================
 Words needing definitions: 2276
-  [1/2276] Processing SOWAR...  [10/2276] Processing SPAAD...
+  [1/2276] Processing SOWAR...  [10/2276] Processing SPAAD... ✗ not_found
+  [20/2276] Processing SPAIN... ✗ not_found
+  [30/2276] Processing SPANK... ✓ got definition
+  [40/2276] Processing SPAWL... ✗ not_found
+  [50/2276] Processing SPEER... ✗ not_found
+  [Saved progress: 14 new definitions]
+  [60/2276] Processing SPETE... ✗ not_found
+  [70/2276] Processing SPIKE... ✓ got definition
+  [80/2276] Processing SPIRE... ✓ got definition
+  [90/2276] Processing SPLAY... ✓ got definition
+  [100/2276] Processing SPOOL... ✓ got definition
+  [Saved progress: 40 new definitions]
+  [110/2276] Processing SPRAT... ✓ got definition
+  [120/2276] Processing SPRUG... ✗ not_found
+  [130/2276] Processing SPUTE... ✗ not_found
+  [140/2276] Processing SQUID... ✓ got definition
+  [150/2276] Processing STACY... ✗ not_found
+  [Saved progress: 64 new definitions]
+  [160/2276] Processing STALE... ✓ got definition
+  [170/2276] Processing STARN... ✗ not_found
+  [180/2276] Processing STCHI... ✗ not_found
+  [190/2276] Processing STEEP... ✓ got definition
+  [200/2276] Processing STENG... ✗ not_found
+  [Saved progress: 88 new definitions]
+  [210/2276] Processing STEVE... ✗ not_found
+  [220/2276] Processing STINE... ✗ not_found
+  [230/2276] Processing STITE... ✗ not_found
+  [240/2276] Processing STOGY... ✓ got definition
+  [250/2276] Processing STONG... ✗ not_found
+  [Saved progress: 108 new definitions]
+  [260/2276] Processing STOPE... ✓ got definition
+  [270/2276] Processing STOVE... ✓ got definition
+  [280/2276] Processing STREP... ✓ got definition
+  [290/2276] Processing STROP... ✓ got definition
+  [300/2276] Processing STUDE... ✗ not_found
+  [Saved progress: 129 new definitions]
+  [310/2276] Processing STURK... ✗ not_found
+  [320/2276] Processing SUAVE... ✓ got definition
+  [330/2276] Processing SUDDY... ✗ not_found
+  [340/2276] Processing SUGAN... ✓ got definition
+  [350/2276] Processing SULEA... ✗ not_found
+  [Saved progress: 144 new definitions]
+  [360/2276] Processing SUMMA... ✓ got definition
+  [370/2276] Processing SUPPL... ✗ not_found
+  [380/2276] Processing SURLY... ✓ got definition
+  [390/2276] Processing SUTRA... ✓ got definition
+  [400/2276] Processing SWAMI... ✓ got definition
+  [Saved progress: 166 new definitions]
+  [410/2276] Processing SWART... ✓ got definition
+  [420/2276] Processing SWEER... ✗ not_found
+  [430/2276] Processing SWIMY... ✗ not_found
+  [440/2276] Processing SWITH... ✗ not_found
+  [450/2276] Processing SWOSH... ✗ not_found
+  [Saved progress: 194 new definitions]
+  [460/2276] Processing SYLPH... ✓ got definition
+  [470/2276] Processing SYSIN... ✗ not_found
+  [480/2276] Processing TABLA... ✓ got definition
+  [490/2276] Processing TACIT... ✓ got definition
+  [500/2276] Processing TAHAR... ✗ not_found
+  [Saved progress: 210 new definitions]
+  [510/2276] Processing TAIPO... ✗ not_found
+  [520/2276] Processing TAKYR... ✗ not_found
+  [530/2276] Processing TALMA... ✗ not_found
+  [540/2276] Processing TAMMY... ✓ got definition
+  [550/2276] Processing TANGY... ✓ got definition
+  [Saved progress: 226 new definitions]
+  [560/2276] Processing TANYA... ✗ not_found
+  [570/2276] Processing TAPPA... ✓ got definition
+  [580/2276] Processing TAREQ... ✗ not_found
+  [590/2276] Processing TARRI... ✗ not_found
+  [600/2276] Processing TATER... ✓ got definition
+  [Saved progress: 242 new definitions]
+  [610/2276] Processing TAUPE... ✓ got definition
+  [620/2276] Processing TAWPY... ✗ not_found
+  [630/2276] Processing TAYRA... ✓ got definition
+  [640/2276] Processing TEARY... ✓ got definition
+  [650/2276] Processing TECTA... ✓ got definition
+  [Saved progress: 255 new definitions]
+  [660/2276] Processing TEIAN... ✗ not_found
+  [670/2276] Processing TELEI... ✗ not_found
+  [680/2276] Processing TEMBE... ✗ not_found
+  [690/2276] Processing TENCH... ✓ got definition
+  [700/2276] Processing TENNU... ✗ not_found
+  [Saved progress: 271 new definitions]
+  [710/2276] Processing TEPID... ✓ got definition
+  [720/2276] Processing TERNA... ✗ not_found
+  [730/2276] Processing TESTE... ✗ not_found
+  [740/2276] Processing TEWEL... ✗ not_found
+  [750/2276] Processing THARF... ✗ not_found
+  [Saved progress: 292 new definitions]
+  [760/2276] Processing THEEK... ✗ not_found
+  [770/2276] Processing THERM... ✓ got definition
+  [780/2276] Processing THIOL... ✓ got definition
+  [790/2276] Processing THOOM... ✗ not_found
+  [800/2276] Processing THRAX... ✗ not_found
+  [Saved progress: 306 new definitions]
+  [810/2276] Processing THULE... ✗ not_found
+  [820/2276] Processing THUYA... ✓ got definition
+  [830/2276] Processing TIBET... ✗ not_found
+  [840/2276] Processing TIFFY... ✗ not_found
+  [850/2276] Processing TILDE... ✓ got definition
+  [Saved progress: 326 new definitions]
+  [860/2276] Processing TIMET... ✗ not_found
+  [870/2276] Processing TINNI...
